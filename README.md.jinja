@@ -1,4 +1,18 @@
+<div align="center">
+{%- if "pytest" in dev_deps %}
+[![pytest](https://img.shields.io/badge/pytest-enabled-blue)](https://docs.pytest.org/)
+{%- endif %}
+{%- if "ruff" in dev_deps %}
+[![ruff](https://img.shields.io/badge/ruff-enabled-black)](https://docs.astral.sh/ruff/)
+{%- endif %}
+{%- if include_license %}
+[![License](https://img.shields.io/github/license/{{author_name | replace(' ', '-')}}/{{project_name}})](LICENSE)
+{%- endif %}
+[![uv](https://img.shields.io/badge/uv-enabled-blue)](https://docs.astral.sh/uv/)
+
 # {{project_name}}
+
+</div>
 
 {{project_description}}
 

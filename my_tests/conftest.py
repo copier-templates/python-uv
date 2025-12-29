@@ -82,6 +82,7 @@ def _session_with_license_project() -> Path:
             "project_name": "license_proj",
             "include_license": True,
             "license_type": "mit",
+            "dev_deps": ["pytest", "pytest-cov"],
         }
     )
     return _run_copy(data, dst_name="license")
