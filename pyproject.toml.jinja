@@ -58,9 +58,32 @@ addopts = [
 {%- endif %}
 ]
 
+{%- if "pytest-cov" in dev_deps %}
 [tool.coverage.run]
-source = ["src"]
+branch = true
 omit = ["*/tests/*"]
+parallel = true
+relative_files = true
+source = ["src"]
+
+[tool.coverage.report]
+skip_empty = true
+skip_covered = false
+precision = 2
+exclude_also = [
+    # Don't complain about missing debug-only code:
+    "def __repr__",
+    "if self\\.debug:",
+
+    # Don't complain if tests don't hit defensive assertion code:
+    "raise AssertionError",
+    "raise NotImplementedError",
+
+    # Don't complain about abstract methods:
+    "@(abc\\.)?abstractmethod",
+]
+{%- endif %}
+
 
 {%- if "ruff" in dev_deps %}
 [tool.ruff]
