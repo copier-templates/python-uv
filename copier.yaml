@@ -83,5 +83,6 @@ _exclude:
     - "licenses"
 
 _tasks:
+    - "rm -f .github/instructions/copier.instructions.md"
     - "{% if not include_license %}rm -f LICENSE{% endif %}"
     - "{% if not github_integration %}rm -rf .github{% endif %}"
