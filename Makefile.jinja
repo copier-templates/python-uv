@@ -21,11 +21,10 @@ check: ## Verify required tools and Git repository
 	done; \
 
 install: check ## Install project dependencies
+	@printf "Installing project dependencies...\n"
+	@uv sync --all-extra || { printf "ERROR: uv sync failed\n" >&2; exit 1; }
 	@printf "Installing pre-commit hooks...\n"
 	@pre-commit install || { printf "ERROR: pre-commit installation failed\n" >&2; exit 1; }
-	@printf "Installing project dependencies...\n"
-	@uv sync --extra dev || { printf "ERROR: uv sync failed\n" >&2; exit 1; }
-	@printf "\u2713 Installation complete\n"
 
 {% if "pytest" in dev_deps -%}
 test: check ## Run all unit tests
@@ -34,7 +33,7 @@ test: check ## Run all unit tests
 	  printf "ERROR: .venv not found — run 'make install' first\n" >&2; \
 	  exit 1; \
 	fi; \
-	uv run pytest tests/unit/
+	@uv run pytest tests/unit/
 {% endif %}
 
 clean: ## Clean build and cache artifacts

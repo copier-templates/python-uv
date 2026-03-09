@@ -13,7 +13,7 @@ help: ## Display available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 check:
-	@for tools in "uv pre-commit"; do \
+	@for tools in "uv"; do \
 		if ! command -v $$tools >/dev/null 2>&1; then \
 			echo "Error: '$$tools' is not installed. Please install it first." >&2; \
 			exit 1; \
