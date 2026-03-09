@@ -44,6 +44,7 @@ dev = [
 requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
+{%- if "pytest" in dev_deps %}
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
@@ -57,6 +58,7 @@ addopts = [
     "--cov-report=term-missing",
 {%- endif %}
 ]
+{%- endif %}
 
 {%- if "pytest-cov" in dev_deps %}
 [tool.coverage.run]
