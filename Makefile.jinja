@@ -7,13 +7,9 @@ CLEAN_FILES := *.pyc
 help: ## Display available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-check: ## Verify required tools and Git repository
+check: ## Verify required tools
 	@set -eu; \
-	if ! git rev-parse --git-dir >/dev/null 2>&1; then \
-	  printf "ERROR: Not a Git repository — run 'git init' first\n" >&2; \
-	  exit 1; \
-	fi
-	for cmd in uv pre-commit; do \
+	for cmd in uv; do \
 	  if ! command -v "$$cmd" >/dev/null 2>&1; then \
 		printf "ERROR: %s missing — install it\n" "$$cmd" >&2; \
 		exit 1; \
@@ -21,19 +17,28 @@ check: ## Verify required tools and Git repository
 	done; \
 
 install: check ## Install project dependencies
-	@printf "Installing project dependencies...\n"
-	@uv sync --all-extra || { printf "ERROR: uv sync failed\n" >&2; exit 1; }
-	@printf "Installing pre-commit hooks...\n"
-	@pre-commit install || { printf "ERROR: pre-commit installation failed\n" >&2; exit 1; }
+	@set -eu; \
+	printf "Installing project dependencies...\n"; \
+	uv sync || { printf "ERROR: uv sync failed\n" >&2; exit 1; }; \
+	if git rev-parse --git-dir >/dev/null 2>&1; then \
+	  if ! command -v pre-commit >/dev/null 2>&1; then \
+		printf "ERROR: pre-commit missing — install it\n" >&2; \
+		exit 1; \
+	  fi; \
+	  printf "Installing pre-commit hooks...\n"; \
+	  pre-commit install || { printf "ERROR: pre-commit installation failed\n" >&2; exit 1; }; \
+	else \
+	  printf "Skipping pre-commit hook installation because this is not a Git repository.\n"; \
+	fi
 
 {% if "pytest" in dev_deps -%}
 test: check ## Run all unit tests
 	@set -eu; \
-	if [[ ! -d ".venv" ]]; then \
+	if [ ! -d ".venv" ]; then \
 	  printf "ERROR: .venv not found — run 'make install' first\n" >&2; \
 	  exit 1; \
 	fi; \
-	@uv run pytest tests/unit/
+	uv run python -m pytest tests/unit/
 {% endif %}
 
 clean: ## Clean build and cache artifacts

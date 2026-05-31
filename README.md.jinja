@@ -13,9 +13,15 @@ make install
 
 ## Usage
 
-Run the application:
+Run the project:
 ```bash
-uv run python -m {{project_name}}
+{% if project_type == "app" %}
+uv run python main.py
+{% elif project_type == "package" %}
+uv run {{project_name}}
+{% else %}
+uv run python -c "from {{module_name}} import hello; print(hello())"
+{% endif %}
 ```
 
 ## Development
@@ -23,20 +29,24 @@ uv run python -m {{project_name}}
 {% if "pytest" in dev_deps %}
 ### Running Tests
 ```bash
-make test-unit
+make test
 ```
 {% endif %}
 {% if "ruff" in dev_deps %}
 ### Code Quality
 ```bash
-make lint
-make format
+uv run ruff check .
+uv run ruff format .
 ```
 {% endif %}
 
 ## Project Structure
 ```
-src/{{project_name}}/     # Main package
+{% if project_type == "app" %}
+main.py                    # Root application entrypoint
+{% else %}
+src/{{module_name}}/       # Main package
+{% endif %}
 {%- if "pytest" in dev_deps %}
 tests/unit/              # Unit tests
 {%- endif %}
