@@ -40,7 +40,7 @@ author_email:
 
 production_deps:
     type: json
-    help: "Enter production dependencies as a JSON array (e.g., [\"requests\", \"click\"])"
+    help: "Enter production dependencies as a JSON array (e.g., [\"httpx[http2]\"])"
     default: []
 
 dev_deps:

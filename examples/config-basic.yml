@@ -9,6 +9,6 @@ project_name: sample_project
 project_description: "Sample project generated via Copier non-interactively"
 author_name: Test User
 author_email: test@test.com
-production_deps: ["httpx"]
+production_deps: ["httpx[http2]"]
 # Include both pytest & ruff to show conditional README sections
 dev_deps: ["pytest", "pytest-cov", "ruff"]

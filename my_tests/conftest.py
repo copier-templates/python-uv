@@ -34,7 +34,7 @@ BASE_DATA: dict[str, object] = {
     "project_description": "Example description",
     "author_name": "Test User",
     "author_email": "test@test.com",
-    "production_deps": ["requests"],
+    "production_deps": ["httpx[http2]"],
     "dev_deps": ["pytest", "pytest-cov"],
     "github_integration": True,
 }
