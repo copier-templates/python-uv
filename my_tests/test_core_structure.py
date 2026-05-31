@@ -12,7 +12,7 @@ EXPECTED_FILES = [
     ".gitattributes",
     ".gitignore",
     ".pre-commit-config.yaml",
-    "Makefile",
+    "mise.toml",
     "pyproject.toml",
     "README.md",
 ]

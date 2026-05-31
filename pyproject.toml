@@ -41,6 +41,7 @@ dev = [
     "pre-commit>=4.5.1",
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
+    "ruff>=0.15.15",
 ]
 
 [tool.pytest.ini_options]
@@ -48,6 +49,10 @@ testpaths = ["my_tests"]
 addopts = "--durations=5 --durations-min=0.0 --tb=short"
 filterwarnings = [
     "ignore:Dirty template changes included automatically:copier._vcs.DirtyLocalWarning",
+]
+markers = [
+    "unit: marks tests as unit tests",
+    "integration: marks tests as integration tests",
 ]
 
 [tool.ruff]
@@ -57,14 +62,31 @@ target-version = "py310"
 [tool.ruff.lint]
 select = [
     "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
     "F",    # Pyflakes
-    "UP",   # pyupgrade
-    "B",    # flake8-bugbear
     "I",    # isort
+    "Q",    # flake8-quotes
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "C90",  # mccabe complexity
+    "SIM",  # flake8-simplify
+    "DTZ",  # flake8-datetimez
+    "ARG",  # unused arguments
+    "PLE",  # Pylint errors
+    "PLW",  # Pylint warnings
+    "PLC",  # Pylint conventions
+    "UP",   # pyupgrade
+    "S",    # flake8-bandit
 ]
 ignore = [
     "E501",  # line-too-long (formatter handles wrapping, but may exceed limit)
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"my_tests/**/*.py" = ["S101", "S105", "S106"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["my_tests"]
 
 [tool.ruff.format]
 quote-style = "double"

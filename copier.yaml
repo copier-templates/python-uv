@@ -86,7 +86,6 @@ _exclude:
     - "docs"
     - "examples"
     - "hooks"
-    - "mise.toml"
     - "pytest.ini"
     - "SECURITY.md"
     - "uv.lock"

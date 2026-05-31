@@ -18,12 +18,12 @@ This guide covers local development setup and workflow for the Copier template p
 
 2. **Install dependencies:**
    ```bash
-   make install
+   mise run install
    ```
 
 3. **Run tests:**
    ```bash
-   make test
+   mise run test
    ```
 
 ## Development Workflow
@@ -32,24 +32,19 @@ This guide covers local development setup and workflow for the Copier template p
 
 Execute the full test suite:
 ```bash
-make test
+mise run test
 ```
 
 Run specific test files:
 ```bash
-make test FILE=my_tests/test_core_structure.py
+uv run pytest my_tests/test_core_structure.py
 ```
 
 ### Code Quality
 
-Format code:
+Format and lint code:
 ```bash
-make format
-```
-
-Check code style:
-```bash
-make lint
+mise run lint
 ```
 
 ## Important Notes
@@ -84,5 +79,5 @@ git commit -m "WIP: template changes"
 Clear and resync:
 ```bash
 uv cache clean
-make install
+mise run install
 ```

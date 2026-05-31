@@ -28,7 +28,7 @@ The main template configuration file that defines:
 │       └── test_init.py.jinja
 ├── pyproject.toml.jinja         # Project configuration (templated)
 ├── README.md.jinja              # Project README (templated)
-├── Makefile.jinja               # Development tasks (templated)
+├── mise.toml.jinja               # Task runner config (templated)
 ├── .copier-answers.yml.jinja    # Answers tracking (templated)
 ├── {{ _copier_conf.answers_file }}.jinja  # Answers file configuration
 │

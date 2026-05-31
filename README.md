@@ -178,7 +178,7 @@ This template includes comprehensive validation tests to ensure generated projec
 
 ```bash
 # Run all validation tests
-make test
+mise run test
 ```
 
 ### ⚡ Test Performance
