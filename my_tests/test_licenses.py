@@ -11,7 +11,7 @@ Template generation is tested via other integration tests:
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -25,7 +25,7 @@ def _mock_license_file(
     author: str = "Test User",
 ) -> MagicMock:
     """Create a mocked license file Path object with test content."""
-    current_year = str(datetime.now().year)
+    current_year = str(datetime.now(tz=timezone.utc).year)
     content_parts = expected_headers + expected_patterns + [author, current_year]
     content = "\n".join(content_parts)
 
@@ -68,7 +68,7 @@ def test_license_patterns_detected(test_case: dict):
 
 def test_copyright_year_detected():
     """Verify current year is properly detected in license content."""
-    current_year = str(datetime.now().year)
+    current_year = str(datetime.now(tz=timezone.utc).year)
     mock_file = _mock_license_file([], [])
 
     content = mock_file.read_text()

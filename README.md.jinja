@@ -8,7 +8,7 @@ Project scaffolded from `copier` template.
 
 Install dependencies:
 ```bash
-make install
+mise run install
 ```
 
 ## Usage
@@ -29,14 +29,13 @@ uv run python -c "from {{module_name}} import hello; print(hello())"
 {% if "pytest" in dev_deps %}
 ### Running Tests
 ```bash
-make test
+mise run test
 ```
 {% endif %}
 {% if "ruff" in dev_deps %}
 ### Code Quality
 ```bash
-uv run ruff check .
-uv run ruff format .
+mise run lint
 ```
 {% endif %}
 

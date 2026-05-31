@@ -1,5 +1,4 @@
 [tools]
-git-cliff = "2.13.1"
 python = "3.10"
 uv = "0.11.17"
 
@@ -8,11 +7,20 @@ _.python.venv = { path = ".venv", create = true }
 _.file = ".env"
 
 [tasks.install]
-description = "Install development dependencies"
+description = "Install project dependencies"
 run = """
-uv sync --dev
-pre-commit install
+uv sync
+if git rev-parse --git-dir >/dev/null 2>&1; then
+  if command -v pre-commit >/dev/null 2>&1; then
+    pre-commit install
+  else
+    echo "WARNING: pre-commit not found, skipping hook installation"
+  fi
+else
+  echo "Skipping pre-commit: not a Git repository"
+fi
 """
+{%- if "ruff" in dev_deps %}
 
 [tasks.lint]
 description = "Run linters"
@@ -22,20 +30,25 @@ run = "uv run ruff check --fix ."
 description = "Format code"
 depends = ["lint"]
 run = "uv run ruff format ."
+{%- endif %}
+{%- if "pytest" in dev_deps %}
 
 [tasks.unit]
-description = "Run template validation tests"
-depends = ["clean", "lint"]
-run = "uv run pytest my_tests/"
+description = "Run unit tests"
+depends = ["clean"{% if "ruff" in dev_deps %}, "lint"{% endif %}]
+run = "uv run pytest tests/unit/"
 
 [tasks.test]
 description = "Run all tests"
-depends = ["clean", "lint"]
+depends = ["clean"{% if "ruff" in dev_deps %}, "lint"{% endif %}]
 run = "uv run pytest"
 
+{%- if "ruff" in dev_deps %}
 [tasks.ci]
 description = "Run CI checks"
 depends = ["lint", "unit", "format"]
+{%- endif %}
+{%- endif %}
 
 [tasks.clean]
 description = "Clean build and cache artifacts"
