@@ -22,6 +22,12 @@ def test_readme_excludes_ruff_section_when_not_selected(generated_basic: Path):
     assert "Code Quality" not in readme
 
 
+def test_pyproject_preserves_httpx_http2_production_dependency(generated_basic: Path):
+    """Generated pyproject.toml should keep the HTTP/2-enabled httpx dependency example."""
+    pyproject = tomllib.loads((generated_basic / "pyproject.toml").read_text())
+    assert pyproject["project"]["dependencies"] == ["httpx[http2]"]
+
+
 def test_pyproject_includes_license_field_when_selected(generated_with_license: Path):
     """Verify pyproject.toml includes license field when license is selected."""
     pyproject = (generated_with_license / "pyproject.toml").read_text()
@@ -124,3 +130,14 @@ def test_pyproject_registers_markers_and_package_coverage(generated_with_ruff: P
     ]
     assert coverage_run["source_pkgs"] == ["ruff_proj"]
     assert "source" not in coverage_run
+
+
+def test_template_examples_prefer_httpx_http2():
+    """Template examples should steer users toward the HTTP/2-enabled httpx package."""
+    template_root = Path(__file__).resolve().parents[1]
+    copier_config = (template_root / "copier.yaml").read_text()
+    example_config = (template_root / "examples" / "config-basic.yml").read_text()
+
+    assert "httpx[http2]" in copier_config
+    assert "requests" not in copier_config
+    assert 'production_deps: ["httpx[http2]"]' in example_config
