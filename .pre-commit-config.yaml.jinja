@@ -32,13 +32,3 @@ repos:
       args: ["--fix"]
     - id: ruff-format
       types_or: [python, pyi]
-
-- repo: local
-  hooks:
-  - id: sync-issue-templates
-    name: Sync GitHub issue templates
-    entry: hooks/sync_issue_templates.sh
-    language: script
-    files: ^\.github/ISSUE_TEMPLATE/.*\.jinja$
-    pass_filenames: false
-    always_run: false

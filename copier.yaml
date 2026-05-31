@@ -2,9 +2,23 @@ project_name:
     type: str
     help: What is your project name?
     validator: >-
-        {% if not project_name.replace('_', '').replace('-', '_').isalnum() %}
+        {% if not project_name.replace('_', '').replace('-', '').isalnum() %}
         Project name must be alphanumeric with underscores/dashes only
         {% endif %}
+
+project_type:
+    type: str
+    help: Which uv-style project type should be generated?
+    choices:
+        Application: app
+        Packaged application: package
+        Library: lib
+    default: package
+
+module_name:
+    type: str
+    default: "{{ project_name|replace('-', '_') }}"
+    when: false
 
 project_description:
     type: str
@@ -71,18 +85,27 @@ _exclude:
     - "my_tests"
     - "docs"
     - "examples"
+    - "hooks"
+    - "mise.toml"
     - "pytest.ini"
+    - "SECURITY.md"
+    - "uv.lock"
     - ".git"
     - ".github/instructions"
     - ".github/copilot-instructions.md"
+    - ".github/extensions"
     - ".vscode"
     - ".chlog"
     - ".pytest_cache"
     - ".ruff_cache"
     - ".DS_Store"
+    - "**/*.egg-info"
     - "licenses"
 
 _tasks:
     - "rm -f .github/instructions/copier.instructions.md"
+    - "{% if project_type == 'app' %}rm -rf src{% endif %}"
+    - "{% if project_type != 'app' %}rm -f main.py{% endif %}"
+    - "{% if project_type != 'lib' %}rm -f src/{{module_name}}/py.typed{% endif %}"
     - "{% if not include_license %}rm -f LICENSE{% endif %}"
     - "{% if not github_integration %}rm -rf .github{% endif %}"

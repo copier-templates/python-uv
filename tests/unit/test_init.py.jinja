@@ -1,8 +1,24 @@
 """Test the main application entry point."""
 
-from {{project_name}} import main
+{% if project_type == "app" %}
+from main import main
+{% elif project_type == "lib" %}
+from {{module_name}} import hello
+{% else %}
+from {{module_name}} import main
+{% endif %}
 
 
+{% if project_type == "lib" %}
+class TestHelloFunction:
+    """Test cases for the library helper."""
+
+    def test_hello_returns_greeting(self) -> None:
+        """Test that hello returns the generated greeting."""
+        result = hello()
+
+        assert result == "Hello from {{project_name}}!"
+{% else %}
 class TestMainFunction:
     """Test cases for the main function."""
 
@@ -18,3 +34,4 @@ class TestMainFunction:
         """Test that main function returns None."""
         result = main()
         assert result is None
+{% endif %}

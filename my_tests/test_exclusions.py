@@ -8,8 +8,19 @@ import pytest
 
 # Module-level constants: defined once per module load, not recreated per test
 # Note: .github is excluded from this list because it now includes ISSUE_TEMPLATE which should be in generated projects
-EXCLUDED_DIRS = [".git", ".vscode", ".chlog", ".pytest_cache", "docs", "my_tests", "examples"]
-EXCLUDED_FILES = ["copier.yaml"]
+EXCLUDED_DIRS = [
+    ".git",
+    ".vscode",
+    ".chlog",
+    ".pytest_cache",
+    "docs",
+    "my_tests",
+    "examples",
+    "hooks",
+    ".github/extensions",
+    "src/copier_python_uv.egg-info",
+]
+EXCLUDED_FILES = ["copier.yaml", "mise.toml", "SECURITY.md", "uv.lock"]
 
 
 @pytest.mark.parametrize("dirname", EXCLUDED_DIRS, ids=lambda x: f"excluded_dir:{x}")

@@ -1,6 +1,6 @@
 [project]
 name = "{{project_name}}"
-version = "0.4.0"
+version = "0.1.0"
 description = "{{project_description}}"
 readme = "README.md"
 authors = [
@@ -33,19 +33,29 @@ dependencies = [
 {%- endfor %}
 ]
 
-[project.optional-dependencies]
+{%- if project_type == "package" %}
+[project.scripts]
+{{project_name}} = "{{module_name}}:main"
+{%- endif %}
+
+{%- if project_type != "app" %}
+[build-system]
+requires = ["uv_build>=0.11.8,<0.12.0"]
+build-backend = "uv_build"
+{%- endif %}
+
+[dependency-groups]
 dev = [
 {%- for dep in dev_deps %}
     "{{dep}}",
 {%- endfor %}
 ]
 
-[build-system]
-requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
-build-backend = "setuptools.build_meta"
-
 {%- if "pytest" in dev_deps %}
 [tool.pytest.ini_options]
+{%- if project_type != "app" %}
+pythonpath = ["src"]
+{%- endif %}
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = [
@@ -53,7 +63,7 @@ addopts = [
     "--durations-min=0.0",
     "--tb=short",
 {%- if "pytest-cov" in dev_deps %}
-    "--cov={{project_name}}",
+    "--cov={% if project_type == 'app' %}main{% else %}{{module_name}}{% endif %}",
     "--cov-report=html",
     "--cov-report=term-missing",
 {%- endif %}
@@ -66,7 +76,7 @@ branch = true
 omit = ["*/tests/*"]
 parallel = true
 relative_files = true
-source = ["src"]
+source = ["{% if project_type == 'app' %}.{% else %}src{% endif %}"]
 
 [tool.coverage.report]
 skip_empty = true
@@ -85,7 +95,6 @@ exclude_also = [
     "@(abc\\.)?abstractmethod",
 ]
 {%- endif %}
-
 
 {%- if "ruff" in dev_deps %}
 [tool.ruff]
