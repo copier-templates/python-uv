@@ -7,8 +7,6 @@ from {{module_name}} import hello
 {% else %}
 from {{module_name}} import main
 {% endif %}
-
-
 {% if project_type == "lib" %}
 class TestHelloFunction:
     """Test cases for the library helper."""

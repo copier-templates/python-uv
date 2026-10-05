@@ -86,7 +86,7 @@ Tasks always run at the end of both `copier copy` and `copier update` operations
 When you generate a new project with conditions set:
 - ✅ `include_license=true` → LICENSE file is kept
 - ✅ `include_license=false` → `LICENSE` file is **removed** after generation
-- ✅ `github_integration=true` → `.github/` files (templates, workflows) are kept
+- ✅ `github_integration=true` → `.github/` workflow files are kept
 - ✅ `github_integration=false` → `.github/` directory is **removed** after generation
 
 #### Project Updates (`copier update`)

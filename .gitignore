@@ -170,14 +170,10 @@ cython_debug/
 !.github/
 !.github/workflows/
 !.github/workflows/**
-!.github/ISSUE_TEMPLATE/
-!.github/ISSUE_TEMPLATE/**
 # But exclude everything else in .github
 .github/**
 !.github/workflows/
 !.github/workflows/**
-!.github/ISSUE_TEMPLATE/
-!.github/ISSUE_TEMPLATE/**
 *.txt
 *.xlsx
 *.log

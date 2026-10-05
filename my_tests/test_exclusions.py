@@ -7,9 +7,7 @@ from pathlib import Path
 import pytest
 
 # Module-level constants: defined once per module load, not recreated per test
-# Note: .github is excluded from this list because it now includes ISSUE_TEMPLATE which should be in generated projects
 EXCLUDED_DIRS = [
-    ".git",
     ".vscode",
     ".chlog",
     ".pytest_cache",

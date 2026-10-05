@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 from copier import run_copy
+from plumbum import local
 
 # Module-level constant: computed once at import time, not repeatedly during tests
 TEMPLATE_ROOT = Path(__file__).resolve().parents[1]
@@ -47,14 +48,20 @@ def _make_data(overrides: dict[str, object]) -> dict[str, object]:
 
 def _run_copy(data: dict[str, object], dst_name: str = "_generated") -> Path:
     dst_dir = Path(tempfile.mkdtemp(prefix=f"copier-template-test-{dst_name}-"))
-    run_copy(
-        str(TEMPLATE_SOURCE),
-        str(dst_dir),
-        data=data,
-        defaults=True,
-        overwrite=True,
-        unsafe=True,
-    )
+    with local.env(
+        GIT_AUTHOR_NAME="Copier Tests",
+        GIT_AUTHOR_EMAIL="copier-tests@example.com",
+        GIT_COMMITTER_NAME="Copier Tests",
+        GIT_COMMITTER_EMAIL="copier-tests@example.com",
+    ):
+        run_copy(
+            str(TEMPLATE_SOURCE),
+            str(dst_dir),
+            data=data,
+            defaults=True,
+            overwrite=True,
+            unsafe=True,
+        )
     return dst_dir
 
 

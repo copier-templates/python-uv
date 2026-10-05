@@ -28,10 +28,12 @@ project_description:
 author_name:
     type: str
     help: Please type the author name
+    default: "Patryk"
 
 author_email:
     type: str
     help: Please type the author email
+    default: "8299306+kpatryk@users.noreply.github.com"
     validator: >-
         {% set _ae = (author_email or '') %}
         {% if '@' not in _ae or _ae.split('@')|length != 2 or _ae.split('@')[0] == '' or _ae.split('@')[1] == '' or '.' not in _ae.split('@')[1] or ' ' in _ae %}
@@ -70,7 +72,7 @@ license_type:
 
 github_integration:
     type: bool
-    help: "Include GitHub integration templates (issue templates, workflow stubs)?"
+    help: "Include GitHub workflow templates?"
     default: true
 
 _templates_suffix: .jinja
