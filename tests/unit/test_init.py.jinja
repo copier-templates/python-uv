@@ -1,10 +1,10 @@
 """Test the main application entry point."""
 
-{% if project_type == "app" %}
+{% if project_type == "app" -%}
 from main import main
-{% elif project_type == "lib" %}
+{% elif project_type == "lib" -%}
 from {{module_name}} import hello
-{% else %}
+{% else -%}
 from {{module_name}} import main
 {% endif %}
 {% if project_type == "lib" %}
@@ -32,4 +32,4 @@ class TestMainFunction:
         """Test that main function returns None."""
         result = main()
         assert result is None
-{% endif %}
+{%- endif %}

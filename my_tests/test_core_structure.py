@@ -57,6 +57,14 @@ def test_readme_contains_project_description(generated_basic: Path):
     assert "Example description" in readme
 
 
+def test_generated_unit_test_has_standard_module_spacing(generated_basic: Path):
+    test_file = (generated_basic / "tests" / "unit" / "test_init.py").read_text()
+
+    assert '"""Test the main application entry point."""\n\nfrom ' in test_file
+    assert test_file.endswith("\n")
+    assert not test_file.endswith("\n\n")
+
+
 def test_initial_commit_includes_uv_lock(generated_basic: Path):
     git = shutil.which("git")
     assert git is not None
