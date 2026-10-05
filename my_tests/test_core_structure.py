@@ -65,6 +65,13 @@ def test_generated_unit_test_has_standard_module_spacing(generated_basic: Path):
     assert not test_file.endswith("\n\n")
 
 
+def test_generated_library_unit_test_has_standard_eof(generated_library: Path):
+    test_file = (generated_library / "tests" / "unit" / "test_init.py").read_text()
+
+    assert test_file.endswith("\n")
+    assert not test_file.endswith("\n\n")
+
+
 def test_initial_commit_includes_uv_lock(generated_basic: Path):
     git = shutil.which("git")
     assert git is not None
