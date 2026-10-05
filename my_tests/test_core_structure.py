@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -15,6 +17,7 @@ EXPECTED_FILES = [
     "mise.toml",
     "pyproject.toml",
     "README.md",
+    "uv.lock",
 ]
 
 EXPECTED_DIRS = ["src", "tests"]
@@ -52,3 +55,18 @@ def test_answers_contains_author_email(generated_basic: Path):
 def test_readme_contains_project_description(generated_basic: Path):
     readme = (generated_basic / "README.md").read_text()
     assert "Example description" in readme
+
+
+def test_initial_commit_includes_uv_lock(generated_basic: Path):
+    git = shutil.which("git")
+    assert git is not None
+
+    committed_files = subprocess.run(  # noqa: S603
+        [git, "ls-tree", "-r", "--name-only", "HEAD"],
+        cwd=generated_basic,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.splitlines()
+
+    assert "uv.lock" in committed_files

@@ -65,12 +65,14 @@ The following tools must be installed:
    copier copy --trust --data-file examples/config-basic.yml -d project_name=override_name /path/to/template /dest
    ```
 
-5. **Review and commit the generated files:**
+5. **Review the generated files:**
    ```bash
    cd /path/to/your-repo
-   git add .
-   git commit -m "feat: Bootstrap repository from template"
+   git status
    ```
+
+   The template runs `uv sync` after bootstrapping and commits the generated
+   `uv.lock` in the initial Git commit.
 
 ### ⚠️ Tasks Behavior with Different Copier Commands
 
@@ -79,6 +81,7 @@ This template uses **conditional tasks** to manage optional features (LICENSE fi
 #### Task Execution Process
 Tasks always run at the end of both `copier copy` and `copier update` operations, **after** all files are generated. This means:
 - Files are created/updated first
+- `uv sync` installs the project and generates or refreshes `uv.lock`
 - Tasks execute based on your current answers
 - Any deletions from tasks are permanent for that operation
 

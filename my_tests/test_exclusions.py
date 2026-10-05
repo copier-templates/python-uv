@@ -18,7 +18,7 @@ EXCLUDED_DIRS = [
     ".github/extensions",
     "src/copier_python_uv.egg-info",
 ]
-EXCLUDED_FILES = ["copier.yaml", "SECURITY.md", "uv.lock"]
+EXCLUDED_FILES = ["copier.yaml", "SECURITY.md"]
 
 
 @pytest.mark.parametrize("dirname", EXCLUDED_DIRS, ids=lambda x: f"excluded_dir:{x}")
