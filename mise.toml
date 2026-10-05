@@ -1,7 +1,7 @@
 [tools]
-git-cliff = "2.13.1"
+git-cliff = "2.13"
 python = "3.12"
-uv = "0.11.17"
+uv = "0.11"
 
 [env]
 _.python.venv = { path = ".venv", create = true }
@@ -12,6 +12,13 @@ description = "Install development dependencies"
 run = """
 uv sync --dev
 pre-commit install
+"""
+
+[tasks.upgrade]
+description = "Upgrade development dependencies"
+run = """
+uv sync --dev --upgrade
+pre-commit autoupdate
 """
 
 [tasks.lint]
