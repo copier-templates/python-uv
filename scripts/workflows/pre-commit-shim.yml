@@ -1,7 +1,7 @@
       - name: "[act-local] Scratch git repo (act strips .git; real runners have a clone)"
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          if [ ! -d "$GITHUB_WORKSPACE/.git" ]; then
+          if [[ ! -d $GITHUB_WORKSPACE/.git ]]; then
             git init -q "$GITHUB_WORKSPACE"
             git -C "$GITHUB_WORKSPACE" add -A
           fi

@@ -53,12 +53,15 @@ def test_mise_toml_is_valid_toml_with_ruff(generated_with_ruff: Path):
     data = tomllib.loads(content)
     assert "tasks" in data
     assert "lint" in data["tasks"]
+    assert "lint:python" in data["tasks"]
+    assert "lint:shell" in data["tasks"]
     assert "format" in data["tasks"]
     assert "unit" in data["tasks"]
     assert "test" in data["tasks"]
     assert "ci" in data["tasks"]
     assert data["env"]["_"]["file"] == ".env"
-    assert data["tasks"]["format"].get("depends") == ["lint"]
+    assert data["tasks"]["lint"].get("depends") == ["lint:python", "lint:shell"]
+    assert "depends" not in data["tasks"]["format"]
     assert data["tasks"]["unit"].get("depends") == ["clean", "lint"]
     assert data["tasks"]["test"].get("depends") == ["clean", "lint"]
     assert data["tasks"]["ci"].get("depends") == ["lint", "unit", "format"]
@@ -70,6 +73,8 @@ def test_mise_toml_is_valid_toml_without_ruff(generated_basic: Path):
     data = tomllib.loads(content)
     assert "tasks" in data
     assert "lint" not in data["tasks"]
+    assert "lint:python" not in data["tasks"]
+    assert "lint:shell" in data["tasks"]
     assert "format" not in data["tasks"]
     assert "ci" not in data["tasks"]
     assert "unit" in data["tasks"]
@@ -83,11 +88,29 @@ def test_mise_toml_lint_task_runs_ruff_fix(generated_with_ruff: Path):
     """Lint and format tasks should be split for Ruff projects."""
     content = (generated_with_ruff / "mise.toml").read_text()
     data = tomllib.loads(content)
-    lint_run = data["tasks"]["lint"]["run"]
+    lint_run = data["tasks"]["lint:python"]["run"]
     format_run = data["tasks"]["format"]["run"]
     assert "ruff check --fix" in lint_run
     assert "ruff format" not in lint_run
     assert format_run == "uv run ruff format ."
+
+
+def test_mise_toml_shell_lint_covers_all_scripts(generated_with_ruff: Path):
+    """Shell lint task must discover *.sh files and run shellcheck on them."""
+    content = (generated_with_ruff / "mise.toml").read_text()
+    data = tomllib.loads(content)
+    shell_run = data["tasks"]["lint:shell"]["run"]
+    assert "shellcheck" in shell_run
+    assert "*.sh" in shell_run
+    assert "((" in shell_run, "mise shell tasks must use modern (( )) arithmetic tests"
+
+
+def test_mise_toml_uses_modern_bash(generated_with_ruff: Path):
+    """Rendered mise tasks must use modern bash, not legacy POSIX tests."""
+    content = (generated_with_ruff / "mise.toml").read_text()
+    assert "#!/usr/bin/env bash" in content
+    assert "if [ " not in content
+    assert "while [ " not in content
 
 
 def test_pyproject_configures_ruff_rules_for_generated_projects(generated_with_ruff: Path):

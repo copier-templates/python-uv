@@ -86,6 +86,7 @@ _exclude:
     - "copier.yaml"
     - "my_tests"
     - "docs"
+    - "AGENTS.md"
     - "examples"
     - "hooks"
     - "scripts"

@@ -3,10 +3,10 @@
 # Sourced by scripts/test-workflow.sh and per-workflow configs. Not executed directly.
 set -euo pipefail
 
-SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPTS_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # --- logging (colors only when attached to a TTY) ---
-if [ -t 1 ]; then
+if [[ -t 1 ]]; then
   _C_OK=$'\033[1;32m'
   _C_ERR=$'\033[1;31m'
   _C_WARN=$'\033[1;33m'
@@ -41,7 +41,7 @@ ensure_docker() {
   # A `docker` shim can exist on PATH yet be broken (e.g. mise without the
   # docker-cli backend). Prefer whichever `docker` actually responds.
   if ! docker --version >/dev/null 2>&1; then
-    if [ -x /opt/homebrew/bin/docker ]; then
+    if [[ -x /opt/homebrew/bin/docker ]]; then
       export PATH="/opt/homebrew/bin:$PATH"
     fi
   fi
@@ -83,7 +83,7 @@ run_act() { # <workflows-dir> <event> <job-or-empty> <image> <log-file> [extra a
   shift 5
   need_cmd act "Install it: brew install act"
   local args=(-W "$workflows_dir" "$event")
-  if [ -n "$job" ]; then
+  if [[ -n $job ]]; then
     args+=(-j "$job")
   fi
   # shellcheck disable=SC2206
@@ -100,7 +100,7 @@ run_act() { # <workflows-dir> <event> <job-or-empty> <image> <log-file> [extra a
 
 print_summary() { # <log-file>
   local log_file="$1"
-  echo "--- step results ---"
+  printf -- '--- step results ---\n'
   grep -a -E "Success -|Failure -" "$log_file" \
     | sed -e 's/.*\(Success\|Failure\) - \(.*\) \[.*/\1: \2/' \
     | sort -u || true
