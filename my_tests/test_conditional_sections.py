@@ -17,6 +17,12 @@ def test_readme_includes_ruff_section_only_when_present(generated_with_ruff: Pat
     assert "Code Quality" in readme
 
 
+def test_readme_includes_mise_badge(generated_basic: Path):
+    readme = (generated_basic / "README.md").read_text()
+    assert "img.shields.io/badge/mise" in readme
+    assert "mise.jdx.dev" in readme
+
+
 def test_readme_excludes_ruff_section_when_not_selected(generated_basic: Path):
     readme = (generated_basic / "README.md").read_text()
     assert "Code Quality" not in readme
