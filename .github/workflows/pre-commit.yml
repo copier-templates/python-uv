@@ -1,11 +1,106 @@
-name: Dependency update
+name: Scheduled Pre-Commit Auto-Update
 
-on:
-    schedule:
-      - cron: "0 6 1 * *"
+"on":
+  schedule:
+    # 06:00 UTC on the 1st of every month
+    - cron: "0 6 1 * *"
+  # Manual trigger from the Actions tab
+  workflow_dispatch:
+
+# Serialize scheduled and manual runs: avoids duplicate work and push races
+concurrency:
+  group: pre-commit-autoupdate
+  cancel-in-progress: false
 
 jobs:
-  pre-commit:
-    uses: kpatryk/workflows/.github/workflows/pre-commit.yml@v0.2.2
-    with:
-      os: ubuntu-latest
+  auto-update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    # Needed for GITHUB_TOKEN to commit and push the updated config
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Full history avoids shallow-clone issues on push
+          fetch-depth: 0
+
+      - name: Set up latest Python
+        uses: actions/setup-python@v5
+        with:
+          # Floating spec: resolves to the latest stable Python 3 on every run
+          python-version: "3.x"
+
+      - name: Install pre-commit
+        # No `pip install --upgrade pip`: setup-python already ships a current
+        # pip, and the upgrade costs ~15s on every run for no benefit here.
+        run: pip install pre-commit
+
+      - name: Cache pip and pre-commit
+        # NOTE: setup-python's built-in `cache: pip` is intentionally NOT used:
+        # it keys off requirements*.txt files, which this repo doesn't have,
+        # so it would silently do nothing. This explicit step actually caches.
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
+          restore-keys: |
+            pre-commit-${{ runner.os }}-
+
+      - name: Run pre-commit autoupdate
+        id: autoupdate
+        run: |
+          pre-commit autoupdate
+
+          # Keep the Copier template in sync: generated projects render
+          # from .pre-commit-config.yaml.jinja, so propagate any rev bumps.
+          python - <<'EOF'
+          import re
+          from pathlib import Path
+
+          src = Path(".pre-commit-config.yaml").read_text()
+          dst_path = Path(".pre-commit-config.yaml.jinja")
+          if dst_path.exists():
+              revs = re.findall(r"(?m)^\s*rev:\s*(\S+)\s*$", src)
+              dst = dst_path.read_text()
+              it = iter(revs)
+              dst, n = re.subn(
+                  r"(?m)^(\s*rev:\s*)\S+(\s*)$",
+                  lambda m, _it=it: f"{m.group(1)}{next(_it)}{m.group(2)}",
+                  dst,
+              )
+              assert n == len(revs), f"expected {len(revs)} rev lines, updated {n}"
+              dst_path.write_text(dst)
+              print(f"Synced {n} rev(s) into .pre-commit-config.yaml.jinja")
+          else:
+              print("No .pre-commit-config.yaml.jinja found, skipping sync")
+          EOF
+
+          # Detect changes in either file (step output, not env var)
+          if git diff --quiet -- .pre-commit-config.yaml .pre-commit-config.yaml.jinja; then
+            echo "changes=false" >> "$GITHUB_OUTPUT"
+            echo "No pre-commit updates available."
+          else
+            echo "changes=true" >> "$GITHUB_OUTPUT"
+            echo "Pre-commit updates detected:"
+            git diff --stat -- .pre-commit-config.yaml .pre-commit-config.yaml.jinja
+          fi
+
+      - name: Commit and push updates
+        if: steps.autoupdate.outputs.changes == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .pre-commit-config.yaml .pre-commit-config.yaml.jinja
+          # Only commit if staged content differs (avoids empty-commit race)
+          if git diff --cached --quiet; then
+            echo "Nothing staged, skipping commit."
+          else
+            git commit -m "chore(deps): auto-update pre-commit hooks"
+            git push
+          fi

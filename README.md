@@ -203,6 +203,34 @@ Test files are located in `my_tests/` folder.
 
 See `my_tests/conftest.py` for fixture definitions.
 
+## 🔄 Pre-commit Auto-Update
+
+The [`pre-commit.yml`](.github/workflows/pre-commit.yml) workflow keeps hook
+versions fresh without manual effort.
+
+| Aspect | Detail |
+|--------|--------|
+| Schedule | Monthly, 06:00 UTC on the 1st (`0 6 1 * *`) |
+| Manual run | Actions tab → *Scheduled Pre-Commit Auto-Update* → *Run workflow* (`workflow_dispatch`) |
+| Runner | `ubuntu-latest` with latest stable Python 3 (`3.x` floating spec, resolved on every run) |
+| Permissions | `contents: write` so `GITHUB_TOKEN` can push the bump commit |
+| Caching | `~/.cache/pip` + `~/.cache/pre-commit` via one `actions/cache` step — hook envs are reused instead of rebuilt each run |
+| Safety | `timeout-minutes: 10`; `concurrency` group serializes overlapping scheduled/manual runs |
+| Commit | `chore(deps): auto-update pre-commit hooks` via `github-actions[bot]`, only when the config actually changed |
+
+How it works:
+
+1. Checks out with `fetch-depth: 0` (avoids shallow-clone push issues).
+2. Runs `pre-commit autoupdate` on `.pre-commit-config.yaml`.
+3. Syncs the bumped `rev:` pins into `.pre-commit-config.yaml.jinja`, so
+   projects generated from this Copier template get the same versions.
+4. Detects changes via `git diff --quiet` (step output `changes`, not env vars);
+   commits and pushes only when something changed — no empty commits.
+
+### 🧪 Testing it locally
+
+Local testing is automated — see [scripts/README.md](scripts/README.md).
+
 ## 📚 Local Documentation
 
 Project-specific guides and workflows:

@@ -16,6 +16,7 @@ EXCLUDED_DIRS = [
     "examples",
     "hooks",
     ".github/extensions",
+    "scripts",
     "src/copier_python_uv.egg-info",
 ]
 EXCLUDED_FILES = ["copier.yaml", "SECURITY.md"]
