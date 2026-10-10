@@ -170,3 +170,35 @@ def test_template_examples_prefer_httpx_http2():
     assert "httpx[http2]" in copier_config
     assert "requests" not in copier_config
     assert 'production_deps: ["httpx[http2]"]' in example_config
+
+
+def _assert_blank_line_between_sections(pyproject_path: Path):
+    """Every TOML section header must be preceded by at least one empty line."""
+    lines = pyproject_path.read_text().splitlines()
+    assert lines, "pyproject.toml should not be empty"
+    assert lines[0].startswith("["), "pyproject.toml should start with a section header"
+    for idx, line in enumerate(lines):
+        if line.startswith("[") and idx > 0:
+            assert lines[idx - 1] == "", (
+                f"missing empty line before section {line!r} (line {idx + 1}): previous line was {lines[idx - 1]!r}"
+            )
+
+
+def test_pyproject_has_blank_line_between_sections(generated_basic: Path):
+    """Regression test: generated pyproject.toml must separate sections with empty lines."""
+    _assert_blank_line_between_sections(generated_basic / "pyproject.toml")
+
+
+def test_pyproject_with_ruff_has_blank_line_between_sections(generated_with_ruff: Path):
+    """Regression test: Ruff sections must also be separated by empty lines."""
+    _assert_blank_line_between_sections(generated_with_ruff / "pyproject.toml")
+
+
+def test_pyproject_app_has_blank_line_between_sections(generated_app: Path):
+    """Regression test: app projects (skipped sections) must keep empty lines."""
+    _assert_blank_line_between_sections(generated_app / "pyproject.toml")
+
+
+def test_pyproject_library_has_blank_line_between_sections(generated_library: Path):
+    """Regression test: library projects (skipped scripts) must keep empty lines."""
+    _assert_blank_line_between_sections(generated_library / "pyproject.toml")
