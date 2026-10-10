@@ -23,13 +23,13 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           # Full history avoids shallow-clone issues on push
           fetch-depth: 0
 
       - name: Set up latest Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           # Floating spec: resolves to the latest stable Python 3 on every run
           python-version: "3.x"
@@ -43,7 +43,7 @@ jobs:
         # NOTE: setup-python's built-in `cache: pip` is intentionally NOT used:
         # it keys off requirements*.txt files, which this repo doesn't have,
         # so it would silently do nothing. This explicit step actually caches.
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cache/pip
@@ -57,38 +57,14 @@ jobs:
         run: |
           pre-commit autoupdate
 
-          # Keep the Copier template in sync: generated projects render
-          # from .pre-commit-config.yaml.jinja, so propagate any rev bumps.
-          python - <<'EOF'
-          import re
-          from pathlib import Path
-
-          src = Path(".pre-commit-config.yaml").read_text()
-          dst_path = Path(".pre-commit-config.yaml.jinja")
-          if dst_path.exists():
-              revs = re.findall(r"(?m)^\s*rev:\s*(\S+)\s*$", src)
-              dst = dst_path.read_text()
-              it = iter(revs)
-              dst, n = re.subn(
-                  r"(?m)^(\s*rev:\s*)\S+(\s*)$",
-                  lambda m, _it=it: f"{m.group(1)}{next(_it)}{m.group(2)}",
-                  dst,
-              )
-              assert n == len(revs), f"expected {len(revs)} rev lines, updated {n}"
-              dst_path.write_text(dst)
-              print(f"Synced {n} rev(s) into .pre-commit-config.yaml.jinja")
-          else:
-              print("No .pre-commit-config.yaml.jinja found, skipping sync")
-          EOF
-
-          # Detect changes in either file (step output, not env var)
-          if git diff --quiet -- .pre-commit-config.yaml .pre-commit-config.yaml.jinja; then
+          # Detect changes (step output, not env var)
+          if git diff --quiet -- .pre-commit-config.yaml; then
             echo "changes=false" >> "$GITHUB_OUTPUT"
             echo "No pre-commit updates available."
           else
             echo "changes=true" >> "$GITHUB_OUTPUT"
             echo "Pre-commit updates detected:"
-            git diff --stat -- .pre-commit-config.yaml .pre-commit-config.yaml.jinja
+            git diff --stat -- .pre-commit-config.yaml
           fi
 
       - name: Commit and push updates
@@ -96,7 +72,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .pre-commit-config.yaml .pre-commit-config.yaml.jinja
+          git add .pre-commit-config.yaml
           # Only commit if staged content differs (avoids empty-commit race)
           if git diff --cached --quiet; then
             echo "Nothing staged, skipping commit."

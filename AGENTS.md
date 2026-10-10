@@ -41,9 +41,10 @@ keep both in sync (see below).
    `check-executables-have-shebangs` hooks and `test_mise_toml_uses_modern_bash`).
 3. **Changing any `*.jinja` template? Add or update a regression test in `my_tests/`.**
    Changing the task graph in `mise.toml.jinja` requires updating
-   `my_tests/test_conditional_sections.py`. Changing hook versions requires updating
-   **both** `.pre-commit-config.yaml` and `.pre-commit-config.yaml.jinja` (the scheduled
-   `pre-commit.yml` workflow syncs `rev:` lines — never edit them in only one file).
+   `my_tests/test_conditional_sections.py`. Hook versions live in the single
+   `.pre-commit-config.yaml`, which ships verbatim into generated projects
+   (like `.github/workflows/*.yml`) — there is no `.jinja` mirror to keep
+   in sync.
 4. **Keep the template contract aligned.** `mise.toml` (this repo) and `mise.toml.jinja`
    (generated projects) must expose the same task names (`lint`, `lint:python`,
    `lint:shell`, `format`, `unit`, `test`, `ci`, `clean`) so muscle memory transfers.

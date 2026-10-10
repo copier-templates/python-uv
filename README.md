@@ -222,10 +222,9 @@ versions fresh without manual effort.
 How it works:
 
 1. Checks out with `fetch-depth: 0` (avoids shallow-clone push issues).
-2. Runs `pre-commit autoupdate` on `.pre-commit-config.yaml`.
-3. Syncs the bumped `rev:` pins into `.pre-commit-config.yaml.jinja`, so
-   projects generated from this Copier template get the same versions.
-4. Detects changes via `git diff --quiet` (step output `changes`, not env vars);
+2. Runs `pre-commit autoupdate` on `.pre-commit-config.yaml` — the single
+   config, shipped verbatim into projects generated from this Copier template.
+3. Detects changes via `git diff --quiet` (step output `changes`, not env vars);
    commits and pushes only when something changed — no empty commits.
 
 ### 🧪 Testing it locally
