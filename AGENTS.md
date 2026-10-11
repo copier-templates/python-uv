@@ -34,11 +34,14 @@ keep both in sync (see below).
    opening a PR. A green `ci` is required — it is what `test.yml` runs.
 2. **Lint everything you touch.** `mise run lint` must be clean: Ruff for `*.py`,
    ShellCheck (`shellcheck -x`) for every `*.sh`. Shell code is modern bash only:
-   `#!/usr/bin/env bash` + `set -euo pipefail` header (also on multiline mise tasks),
-   `[[ ]]` / `(( ))` tests, `printf` over `echo`, arrays with NUL-delimited input
-   (`git ls-files -z`, `find -print0`) — no legacy `[ ]`, backticks, or
-   newline-delimited `| xargs` (enforced by the `script-must-have-extension` /
-   `check-executables-have-shebangs` hooks and `test_mise_toml_uses_modern_bash`).
+   `#!/usr/bin/env bash` + `set -euo pipefail` header on `*.sh` files and on
+   multiline mise tasks that need bash features (`[[ ]]` / `(( ))`, arrays,
+   process substitution); POSIX-only mise tasks omit the header and rely on
+   mise's default `sh -o errexit`. Use `printf` over `echo`, arrays with
+   NUL-delimited input (`git ls-files -z`, `find -print0`) — no legacy `[ ]`,
+   backticks, or newline-delimited `| xargs` (enforced by the
+   `script-must-have-extension` / `check-executables-have-shebangs` hooks and
+   `test_mise_toml_uses_modern_bash` / `test_mise_toml_shebang_only_where_bash_needed`).
 3. **Changing any `*.jinja` template? Add or update a regression test in `my_tests/`.**
    Changing the task graph in `mise.toml.jinja` requires updating
    `my_tests/test_conditional_sections.py`. Hook versions live in the single

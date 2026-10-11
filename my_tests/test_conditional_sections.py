@@ -119,6 +119,21 @@ def test_mise_toml_uses_modern_bash(generated_with_ruff: Path):
     assert "while [ " not in content
 
 
+def test_mise_toml_pins_pre_commit_tool(generated_basic: Path):
+    """Generated mise.toml must pin pre-commit so hooks run from mise."""
+    data = tomllib.loads((generated_basic / "mise.toml").read_text())
+    assert data["tools"]["pre-commit"] == "4.6"
+
+
+def test_mise_toml_install_runs_mise_pre_commit(generated_basic: Path):
+    """Install task must assume the mise-provided pre-commit (no command -v guard)."""
+    data = tomllib.loads((generated_basic / "mise.toml").read_text())
+    install_run = data["tasks"]["install"]["run"]
+    assert "uv sync" in install_run
+    assert "pre-commit install" in install_run
+    assert "command -v" not in install_run
+
+
 def test_pyproject_configures_ruff_rules_for_generated_projects(generated_with_ruff: Path):
     """Generated pyproject.toml should include the expanded Ruff config."""
     pyproject = tomllib.loads((generated_with_ruff / "pyproject.toml").read_text())
