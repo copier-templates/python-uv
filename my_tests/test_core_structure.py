@@ -14,6 +14,7 @@ EXPECTED_FILES = [
     ".gitattributes",
     ".gitignore",
     "prek.toml",
+    "cliff.toml",
     "mise.toml",
     "pyproject.toml",
     "README.md",

@@ -71,6 +71,7 @@ git commit -m "WIP: template changes"
 - **pytest**: Testing framework
 - **copier**: Project template tool
 - **prek**: Git hooks framework
+- **git-cliff**: Changelog generator (`mise run changelog` previews, `cliff.toml` configures)
 
 ## Troubleshooting
 

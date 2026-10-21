@@ -174,7 +174,7 @@ def test_mise_toml_pins_local_cicd_tools(generated_with_ruff: Path):
     data = tomllib.loads((generated_with_ruff / "mise.toml").read_text())
     assert data["tools"]["act"] == "0.2"
     assert data["tools"]["actionlint"] == "1.7"
-    assert data["tools"]["git-cliff"] == "2.13"
+    assert data["tools"]["git-cliff"] == "2.14.2"
 
 
 def test_mise_toml_agent_entrypoints(generated_with_ruff: Path):
