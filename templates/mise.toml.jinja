@@ -63,18 +63,19 @@ run = [{ task = "fix:python" }, { task = "format" }]
 
 [tasks.unit]
 description = "Run unit tests"
-depends = ["clean"{% if "ruff" in dev_deps %}, "lint"{% endif %}]
+timeout = "10m"
 run = "uv run pytest tests/unit/"
 
 [tasks.test]
 description = "Run all tests"
-depends = ["clean"{% if "ruff" in dev_deps %}, "lint"{% endif %}]
+timeout = "10m"
 run = "uv run pytest"
 
 {%- if "ruff" in dev_deps %}
 [tasks.ci]
-description = "Run CI checks"
-depends = ["lint", "unit", "format"]
+description = "Run CI checks (ordered, read-only)"
+env = { CI = "true" }
+run = [{ task = "lint" }, { task = "format:check" }, { task = "unit" }]
 {%- endif %}
 {%- endif %}
 

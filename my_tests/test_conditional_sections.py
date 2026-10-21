@@ -72,9 +72,19 @@ def test_mise_toml_is_valid_toml_with_ruff(generated_with_ruff: Path):
     assert data["tasks"]["lint"].get("depends") == ["lint:python", "lint:shell"]
     assert "depends" not in data["tasks"]["format"]
     assert "depends" not in data["tasks"]["format:check"]
-    assert data["tasks"]["unit"].get("depends") == ["clean", "lint"]
-    assert data["tasks"]["test"].get("depends") == ["clean", "lint"]
-    assert data["tasks"]["ci"].get("depends") == ["lint", "unit", "format"]
+    assert "depends" not in data["tasks"]["unit"]
+    assert "depends" not in data["tasks"]["test"]
+    assert "depends" not in data["tasks"]["ci"]
+
+
+def test_mise_toml_ci_runs_ordered_readonly_steps(generated_with_ruff: Path):
+    """CI must run lint, format:check, unit in order via run steps, not parallel depends."""
+    data = tomllib.loads((generated_with_ruff / "mise.toml").read_text())
+    ci_run = data["tasks"]["ci"]["run"]
+    assert isinstance(ci_run, list)
+    step_tasks = [step["task"] for step in ci_run if isinstance(step, dict) and "task" in step]
+    assert step_tasks == ["lint", "format:check", "unit"]
+    assert data["tasks"]["ci"].get("env", {}).get("CI") == "true"
 
 
 def test_mise_toml_is_valid_toml_without_ruff(generated_basic: Path):
@@ -93,8 +103,8 @@ def test_mise_toml_is_valid_toml_without_ruff(generated_basic: Path):
     assert "unit" in data["tasks"]
     assert "test" in data["tasks"]
     assert data["env"]["_"]["file"] == ".env"
-    assert data["tasks"]["unit"].get("depends") == ["clean"]
-    assert data["tasks"]["test"].get("depends") == ["clean"]
+    assert "depends" not in data["tasks"]["unit"]
+    assert "depends" not in data["tasks"]["test"]
 
 
 def test_mise_toml_lint_is_check_only_and_fix_task_mutates(generated_with_ruff: Path):

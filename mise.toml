@@ -70,17 +70,18 @@ run = [{ task = "fix:python" }, { task = "format" }]
 
 [tasks.unit]
 description = "Run template validation tests"
-depends = ["clean", "lint"]
+timeout = "10m"
 run = "uv run pytest my_tests/"
 
 [tasks.test]
 description = "Run all tests"
-depends = ["clean", "lint"]
+timeout = "10m"
 run = "uv run pytest"
 
 [tasks.ci]
-description = "Run CI checks"
-depends = ["lint", "unit", "format"]
+description = "Run CI checks (ordered, read-only)"
+env = { CI = "true" }
+run = [{ task = "lint" }, { task = "format:check" }, { task = "unit" }]
 
 [tasks.clean]
 description = "Clean build and cache artifacts"
