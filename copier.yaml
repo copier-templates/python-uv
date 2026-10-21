@@ -78,6 +78,8 @@ github_integration:
 _min_copier_version: "9.0.0"
 _templates_suffix: .jinja
 _subdirectory: templates
+_preserve:
+    - ".copier-answers.yml"
 _envops:
     block_start_string: "{%"
     block_end_string: "%}"
