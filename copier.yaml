@@ -95,8 +95,8 @@ _exclude:
     - "{% if not github_integration %}.github{% endif %}"
 
 _tasks:
-    - "uv sync"
+    - ["uv", "sync"]
     - command: "git init . && git add -A && git commit -m 'Init commit' --allow-empty"
       when: "{{ _copier_operation == 'copy' }}"
-    - command: "mise trust"
+    - command: ["mise", "trust"]
       when: "{{ _copier_operation == 'copy' }}"
