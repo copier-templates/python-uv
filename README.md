@@ -1,10 +1,12 @@
 <div align="center">
 
 [![tests](https://github.com/patryk-gpl/copier-python-uv/actions/workflows/test.yml/badge.svg)](https://github.com/patryk-gpl/copier-python-uv/actions)
+[![python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![uv](https://img.shields.io/badge/uv-enabled-blue)](https://docs.astral.sh/uv/)
 [![ruff](https://img.shields.io/badge/ruff-enabled-black)](https://docs.astral.sh/ruff/)
 [![copier](https://img.shields.io/badge/copier-template-orange)](https://copier.readthedocs.io/)
 [![mise](https://img.shields.io/badge/mise-enabled-purple)](https://mise.jdx.dev/)
+[![prek](https://raw.githubusercontent.com/j178/prek/main/docs/assets/badge.svg)](https://github.com/j178/prek)
 [![License](https://img.shields.io/github/license/patryk-gpl/copier-python-uv)](LICENSE)
 
 # 🎯 Python Project Template

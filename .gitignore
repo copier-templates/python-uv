@@ -166,6 +166,7 @@ cython_debug/
 # Exceptions: Include root-level dotfiles that are part of the template
 !.gitattributes
 !.gitignore
+!.prekignore
 !prek.toml
 !.github/
 !.github/workflows/
