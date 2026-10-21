@@ -7,7 +7,7 @@ exclude = ["templates*", "my_tests*", "extensions*", "tests*", "src*"]
 
 [project]
 name = "copier-python-uv"
-version = "0.4.0"
+version = "0.3.0"
 description = "Copier template to bootstrap a Python package with uv and basic configuration"
 readme = "README.md"
 requires-python = ">=3.10"
