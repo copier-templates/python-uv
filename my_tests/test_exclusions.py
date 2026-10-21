@@ -21,7 +21,6 @@ EXCLUDED_DIRS = [
     "hooks",
     "extensions",
     ".github/extensions",
-    "scripts",
     "src/copier_python_uv.egg-info",
     "templates",
     "licenses",

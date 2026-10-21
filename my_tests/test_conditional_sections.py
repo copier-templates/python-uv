@@ -75,6 +75,7 @@ def test_mise_toml_is_valid_toml_with_ruff(generated_with_ruff: Path):
     assert "bootstrap" in data["tasks"]
     assert "ci:act" in data["tasks"]
     assert "changelog" in data["tasks"]
+    assert "release" in data["tasks"]
     assert "clean" in data["tasks"]
     assert "clean:all" in data["tasks"]
     assert data["env"]["_"]["file"] == ".env"
@@ -120,6 +121,7 @@ def test_mise_toml_is_valid_toml_without_ruff(generated_basic: Path):
     assert "bootstrap" in data["tasks"]
     assert "ci:act" in data["tasks"]
     assert "changelog" in data["tasks"]
+    assert "release" in data["tasks"]
     assert "clean" in data["tasks"]
     assert "clean:all" in data["tasks"]
     assert "unit" in data["tasks"]
@@ -175,6 +177,7 @@ def test_mise_toml_pins_local_cicd_tools(generated_with_ruff: Path):
     assert data["tools"]["act"] == "0.2"
     assert data["tools"]["actionlint"] == "1.7"
     assert data["tools"]["git-cliff"] == "2.14.2"
+    assert data["tools"]["gum"] == "2.0.2"
 
 
 def test_mise_toml_agent_entrypoints(generated_with_ruff: Path):

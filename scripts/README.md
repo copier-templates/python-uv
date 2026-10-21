@@ -3,6 +3,10 @@
 Run GitHub Actions workflows on your machine before pushing: lint them with
 `actionlint`, then execute the real job in an Ubuntu container via `act`.
 
+Cutting a release is separate: `scripts/release.sh` (see `mise run release`
+and `docs/development.md`) bumps `pyproject.toml`, regenerates
+`CHANGELOG.md`, commits, and tags.
+
 ```bash
 ./scripts/test-workflow.sh prek
 ./scripts/test-workflow.sh --list

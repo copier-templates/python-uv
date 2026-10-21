@@ -47,6 +47,29 @@ Format and lint code:
 mise run lint
 ```
 
+### Cutting a Release
+
+Preview first (`mise run changelog`), then run the interactive release flow:
+
+```bash
+mise run release
+```
+
+On a TTY with `gum` it prompts to confirm/edit the suggested version
+(computed by `git-cliff` from conventional commits) and to approve the
+commit. Non-interactive (or without `gum`):
+
+```bash
+mise run release -- --version 0.4.0 --yes
+# or: RELEASE_YES=1 RELEASE_VERSION=0.4.0 mise run release
+```
+
+The script bumps `[project] version` in `pyproject.toml`, re-locks
+`uv.lock`, regenerates `CHANGELOG.md`, commits
+(`chore(release): prepare for X`), and tags `X` — it never pushes.
+A repo with no tags yet (first release) defaults to the `pyproject.toml`
+version. Afterwards: `git push --follow-tags`.
+
 ## Important Notes
 
 ### Git Repository Requirement for Testing

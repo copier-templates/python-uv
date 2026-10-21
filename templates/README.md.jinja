@@ -48,6 +48,18 @@ Preview the changelog:
 mise run changelog
 ```
 
+### Release
+
+Cut a release (bumps `pyproject.toml`, regenerates `CHANGELOG.md`, commits, tags — never pushes):
+```bash
+mise run release
+```
+
+Non-interactive (CI-safe):
+```bash
+mise run release -- --version 0.2.0 --yes
+```
+
 ## Project Structure
 ```
 {% if project_type == "app" %}
