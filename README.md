@@ -77,21 +77,20 @@ The following tools must be installed:
 
 ### ⚠️ Tasks Behavior with Different Copier Commands
 
-This template uses **conditional tasks** to manage optional features (LICENSE file, GitHub integration). Understanding their behavior is important for safe updates:
+This template uses **templated `_exclude`** to manage optional features (LICENSE file, GitHub integration, `src` vs `main.py`, `py.typed`). Understanding their behavior is important for safe updates:
 
-#### Task Execution Process
-Tasks always run at the end of both `copier copy` and `copier update` operations, **after** all files are generated. This means:
-- Files are created/updated first
+#### Render Process
+Exclusions are evaluated during rendering, **before** tasks run. This means:
+- Optional files are never created when excluded
 - `uv sync` installs the project and generates or refreshes `uv.lock`
-- Tasks execute based on your current answers
-- Any deletions from tasks are permanent for that operation
+- Remaining `_tasks` (`uv sync`, `git init`, `mise trust`) run after rendering
 
 #### Initial Project Generation (`copier copy`)
 When you generate a new project with conditions set:
-- ✅ `include_license=true` → LICENSE file is kept
-- ✅ `include_license=false` → `LICENSE` file is **removed** after generation
-- ✅ `github_integration=true` → `.github/` workflow files are kept
-- ✅ `github_integration=false` → `.github/` directory is **removed** after generation
+- ✅ `include_license=true` → LICENSE file is rendered
+- ✅ `include_license=false` → `LICENSE` is excluded, never created
+- ✅ `github_integration=true` → `.github/` workflow files are rendered
+- ✅ `github_integration=false` → `.github/` is excluded, never created
 
 #### Project Updates (`copier update`)
 **Tasks are executed again** during updates. This is important:
@@ -126,7 +125,7 @@ copier copy --trust --vcs-ref=HEAD \
 
 # Then: Update but accidentally change github_integration to false
 copier update --trust --data github_integration=false
-# Result: 🔴 rm -rf .github DELETES ALL CUSTOM WORKFLOWS!
+# Result: 🔴 excluded .github paths are removed, DELETING CUSTOM WORKFLOWS!
 ```
 
 #### Safe Alternative for Disabling Features

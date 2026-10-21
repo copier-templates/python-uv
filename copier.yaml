@@ -88,13 +88,13 @@ _envops:
 _exclude:
     - "licenses"
     - "licenses/*"
+    - "{% if project_type == 'app' %}src{% endif %}"
+    - "{% if project_type != 'app' %}main.py{% endif %}"
+    - "{% if project_type != 'lib' %}src/{{module_name}}/py.typed{% endif %}"
+    - "{% if not include_license %}LICENSE{% endif %}"
+    - "{% if not github_integration %}.github{% endif %}"
 
 _tasks:
-    - "{% if project_type == 'app' %}rm -rf src{% endif %}"
-    - "{% if project_type != 'app' %}rm -f main.py{% endif %}"
-    - "{% if project_type != 'lib' %}rm -f src/{{module_name}}/py.typed{% endif %}"
-    - "{% if not include_license %}rm -f LICENSE{% endif %}"
-    - "{% if not github_integration %}rm -rf .github{% endif %}"
     - "uv sync"
     - command: "git init . && git add -A && git commit -m 'Init commit' --allow-empty"
       when: "{{ _copier_operation == 'copy' }}"
