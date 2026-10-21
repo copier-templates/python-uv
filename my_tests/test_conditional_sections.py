@@ -119,18 +119,18 @@ def test_mise_toml_uses_modern_bash(generated_with_ruff: Path):
     assert "while [ " not in content
 
 
-def test_mise_toml_pins_pre_commit_tool(generated_basic: Path):
-    """Generated mise.toml must pin pre-commit so hooks run from mise."""
+def test_mise_toml_pins_prek_tool(generated_basic: Path):
+    """Generated mise.toml must pin prek so hooks run from mise."""
     data = tomllib.loads((generated_basic / "mise.toml").read_text())
-    assert data["tools"]["pre-commit"] == "4.6"
+    assert data["tools"]["prek"] == "0.5.6"
 
 
-def test_mise_toml_install_runs_mise_pre_commit(generated_basic: Path):
-    """Install task must assume the mise-provided pre-commit (no command -v guard)."""
+def test_mise_toml_install_runs_mise_prek(generated_basic: Path):
+    """Install task must assume the mise-provided prek (no command -v guard)."""
     data = tomllib.loads((generated_basic / "mise.toml").read_text())
     install_run = data["tasks"]["install"]["run"]
     assert "uv sync" in install_run
-    assert "pre-commit install" in install_run
+    assert "prek install --force" in install_run
     assert "command -v" not in install_run
 
 

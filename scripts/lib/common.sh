@@ -61,7 +61,7 @@ ensure_docker() {
 }
 
 run_actionlint() { # <workflow-file>
-  need_cmd actionlint "Install it: brew install actionlint"
+  need_cmd actionlint "Install it: mise install"
   actionlint "$1"
   log_ok "actionlint: $1 clean"
 }
@@ -81,7 +81,7 @@ inject_snippet() { # <staged-workflow-file> <job> <snippet-file>
 run_act() { # <workflows-dir> <event> <job-or-empty> <image> <log-file> [extra act args...]
   local workflows_dir="$1" event="$2" job="$3" image="$4" log_file="$5"
   shift 5
-  need_cmd act "Install it: brew install act"
+  need_cmd act "Install it: mise install"
   local args=(-W "$workflows_dir" "$event")
   if [[ -n $job ]]; then
     args+=(-j "$job")

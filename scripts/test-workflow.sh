@@ -18,8 +18,8 @@ Usage:
   test-workflow.sh --help
 
 Examples:
-  test-workflow.sh pre-commit
-  test-workflow.sh pre-commit --event schedule
+  test-workflow.sh prek
+  test-workflow.sh prek --event schedule
   test-workflow.sh test --job test --event pull_request
 
 Full docs: scripts/README.md

@@ -68,10 +68,10 @@ Python: {{ python_version }}
 
 ### Conditional Sections
 
-Make files and directories conditional by templating their names with Jinja expressions. For example, generate a file only when `use_precommit` is true:
+Make files and directories conditional by templating their names with Jinja expressions. For example, generate a file only when `use_prek` is true:
 
 ```
-{% if use_precommit %}.pre-commit-config.yaml{% endif %}.jinja
+{% if use_prek %}prek.toml{% endif %}.jinja
 ```
 
 Important: keep the template suffix (by default `.jinja`) outside the Jinja expression. If the suffix is inside the condition the file won't be treated as a template and will be copied verbatim.

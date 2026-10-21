@@ -204,25 +204,25 @@ Test files are located in `my_tests/` folder.
 
 See `my_tests/conftest.py` for fixture definitions.
 
-## 🔄 Pre-commit Auto-Update
+## 🔄 Prek Auto-Update
 
-The [`pre-commit.yml`](.github/workflows/pre-commit.yml) workflow keeps hook
+The [`prek.yml`](.github/workflows/prek.yml) workflow keeps hook
 versions fresh without manual effort.
 
 | Aspect | Detail |
 |--------|--------|
 | Schedule | Monthly, 06:00 UTC on the 1st (`0 6 1 * *`) |
-| Manual run | Actions tab → *Scheduled Pre-Commit Auto-Update* → *Run workflow* (`workflow_dispatch`) |
+| Manual run | Actions tab → *Scheduled Prek Auto-Update* → *Run workflow* (`workflow_dispatch`) |
 | Runner | `ubuntu-latest` with latest stable Python 3 (`3.x` floating spec, resolved on every run) |
 | Permissions | `contents: write` so `GITHUB_TOKEN` can push the bump commit |
-| Caching | `~/.cache/pip` + `~/.cache/pre-commit` via one `actions/cache` step — hook envs are reused instead of rebuilt each run |
+| Caching | `~/.cache/prek` via one `actions/cache` step — hook envs are reused instead of rebuilt each run |
 | Safety | `timeout-minutes: 10`; `concurrency` group serializes overlapping scheduled/manual runs |
-| Commit | `chore(deps): auto-update pre-commit hooks` via `github-actions[bot]`, only when the config actually changed |
+| Commit | `chore(deps): auto-update prek hooks` via `github-actions[bot]`, only when the config actually changed |
 
 How it works:
 
 1. Checks out with `fetch-depth: 0` (avoids shallow-clone push issues).
-2. Runs `pre-commit autoupdate` on `.pre-commit-config.yaml` — the single
+2. Runs `prek update` on `prek.toml` — the single
    config, shipped verbatim into projects generated from this Copier template.
 3. Detects changes via `git diff --quiet` (step output `changes`, not env vars);
    commits and pushes only when something changed — no empty commits.
@@ -254,6 +254,6 @@ For framework and tool documentation:
 
 ### Tools
 - Copier Framework: [Copier Documentation](https://copier.readthedocs.io/en/stable/)
-- Pre-commit Hooks: [pre-commit Framework](https://pre-commit.com/)
+- Git Hooks: [prek Documentation](https://prek.j178.dev/)
 - Ruff Formatter: [Ruff Documentation](https://docs.astral.sh/ruff/)
 - UV Package Manager: [UV Documentation](https://docs.astral.sh/uv/)

@@ -16,7 +16,7 @@ The toolchain (Python, `uv`, `shellcheck`) is pinned in `mise.toml`. Run:
 
 | Command                   | Purpose                                            |
 | ------------------------- | -------------------------------------------------- |
-| `mise run install`        | First-time setup (`uv sync --dev` + pre-commit)    |
+| `mise run install`        | First-time setup (`uv sync --dev` + prek)         |
 | `mise run lint`           | All linters (Ruff for Python, ShellCheck for `*`) |
 | `mise run lint:python` / `mise run lint:shell` | Single-language lint                |
 | `mise run format`         | Ruff formatter                                     |
@@ -25,7 +25,7 @@ The toolchain (Python, `uv`, `shellcheck`) is pinned in `mise.toml`. Run:
 | `mise run ci`             | Pre-push gate: `lint` + `unit` + `format`          |
 
 Do not invoke `ruff`, `pytest`, or `shellcheck` binaries directly — versions would drift
-from the pinned toolchain. `pre-commit` hooks mirror the same linters as a second gate;
+from the pinned toolchain. `prek` hooks mirror the same linters as a second gate;
 keep both in sync (see below).
 
 ## Rules for code changes / refactoring
@@ -45,7 +45,7 @@ keep both in sync (see below).
 3. **Changing any `*.jinja` template? Add or update a regression test in `my_tests/`.**
    Changing the task graph in `mise.toml.jinja` requires updating
    `my_tests/test_conditional_sections.py`. Hook versions live in the single
-   `.pre-commit-config.yaml`, which ships verbatim into generated projects
+   `prek.toml`, which ships verbatim into generated projects
    (like `.github/workflows/*.yml`) — there is no `.jinja` mirror to keep
    in sync.
 4. **Keep the template contract aligned.** `mise.toml` (this repo) and `mise.toml.jinja`
@@ -70,5 +70,5 @@ keep both in sync (see below).
 ## Commits
 
 Conventional Commits are enforced by the `commit-msg` hook
-(e.g. `feat:`, `fix:`, `chore(deps):`). Pre-commit auto-fixers may modify your files —
+(e.g. `feat:`, `fix:`, `chore(deps):`). Prek auto-fixers may modify your files —
 re-run the affected `mise` task and re-stage before committing.

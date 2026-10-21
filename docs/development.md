@@ -70,7 +70,7 @@ git commit -m "WIP: template changes"
 - **ruff**: Fast Python linter and formatter
 - **pytest**: Testing framework
 - **copier**: Project template tool
-- **pre-commit**: Git hooks framework
+- **prek**: Git hooks framework
 
 ## Troubleshooting
 

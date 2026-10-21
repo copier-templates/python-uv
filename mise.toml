@@ -1,6 +1,8 @@
 [tools]
+act = "0.2"
+actionlint = "1.7"
 git-cliff = "2.13"
-pre-commit = "4.6"
+prek = "0.5.6"
 python = "3.12"
 shellcheck = "0.11"
 uv = "0.11"
@@ -13,14 +15,14 @@ _.file = ".env"
 description = "Install development dependencies"
 run = """
 uv sync --dev
-pre-commit install
+prek install --force
 """
 
 [tasks.upgrade]
 description = "Upgrade development dependencies"
 run = """
 uv sync --dev --upgrade
-pre-commit autoupdate
+prek update
 """
 
 [tasks."lint:python"]

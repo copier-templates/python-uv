@@ -4,7 +4,7 @@ Run GitHub Actions workflows on your machine before pushing: lint them with
 `actionlint`, then execute the real job in an Ubuntu container via `act`.
 
 ```bash
-./scripts/test-workflow.sh pre-commit
+./scripts/test-workflow.sh prek
 ./scripts/test-workflow.sh --list
 ```
 
@@ -13,8 +13,8 @@ Run GitHub Actions workflows on your machine before pushing: lint them with
 | Tool | Purpose | Install |
 |------|---------|---------|
 | `docker` CLI + daemon | containers for `act` | `brew install docker` + `colima start` |
-| `act` | runs workflows locally | `brew install act` |
-| `actionlint` | static workflow lint (fast fail gate) | `brew install actionlint` |
+| `act` | runs workflows locally | `mise install` |
+| `actionlint` | static workflow lint (fast fail gate) | `mise install` |
 | `python3` | scratch-copy patching | preinstalled on macOS |
 
 The script finds a working `docker` on its own (including the Homebrew one when
@@ -50,10 +50,10 @@ What a run does:
 
 ## Adding a new workflow
 
-Copy the pre-commit profile and adjust four variables:
+Copy the prek profile and adjust four variables:
 
 ```bash
-cp scripts/workflows/pre-commit.sh scripts/workflows/my-job.sh
+cp scripts/workflows/prek.sh scripts/workflows/my-job.sh
 ```
 
 ```bash
@@ -70,11 +70,11 @@ Then `./scripts/test-workflow.sh my-job`. No runner changes needed.
 
 `act`'s fake checkout copies files **without** the `.git` directory, and the
 container runs as root (git "dubious ownership" refusal). Jobs that shell out
-to `git` need the same shim the pre-commit profile uses:
+to `git` need the same shim the prek profile uses:
 
 ```bash
 WORKFLOW_NEEDS_GIT_SHIM="yes"
-WORKFLOW_SHIM_SNIPPET="$SCRIPTS_DIR/workflows/pre-commit-shim.yml"
+WORKFLOW_SHIM_SNIPPET="$SCRIPTS_DIR/workflows/prek-shim.yml"
 ```
 
 The snippet (a plain YAML step fragment) is injected as the first step of the

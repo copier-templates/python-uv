@@ -13,7 +13,7 @@ EXPECTED_FILES = [
     ".copier-answers.yml",
     ".gitattributes",
     ".gitignore",
-    ".pre-commit-config.yaml",
+    "prek.toml",
     "mise.toml",
     "pyproject.toml",
     "README.md",
