@@ -83,6 +83,7 @@ _envops:
     block_end_string: "%}"
     variable_start_string: "{{"
     variable_end_string: "}}"
+    undefined: "jinja2.StrictUndefined"
 
 _exclude:
     - "licenses"
