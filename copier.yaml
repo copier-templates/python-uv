@@ -75,6 +75,7 @@ github_integration:
     help: "Include GitHub workflow templates?"
     default: true
 
+_min_copier_version: "9.0.0"
 _templates_suffix: .jinja
 _subdirectory: templates
 _envops:
