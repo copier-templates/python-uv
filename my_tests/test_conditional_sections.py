@@ -62,14 +62,23 @@ def test_mise_toml_is_valid_toml_with_ruff(generated_with_ruff: Path):
     assert "lint:python" in data["tasks"]
     assert "lint:shell" in data["tasks"]
     assert "fix:python" in data["tasks"]
+    assert "lint:workflows" in data["tasks"]
     assert "format" in data["tasks"]
     assert "format:check" in data["tasks"]
     assert "fix" in data["tasks"]
+    assert "hooks" in data["tasks"]
     assert "unit" in data["tasks"]
     assert "test" in data["tasks"]
     assert "ci" in data["tasks"]
+    assert "verify" in data["tasks"]
+    assert "doctor" in data["tasks"]
+    assert "bootstrap" in data["tasks"]
+    assert "ci:act" in data["tasks"]
+    assert "changelog" in data["tasks"]
+    assert "clean" in data["tasks"]
+    assert "clean:all" in data["tasks"]
     assert data["env"]["_"]["file"] == ".env"
-    assert data["tasks"]["lint"].get("depends") == ["lint:python", "lint:shell"]
+    assert data["tasks"]["lint"].get("depends") == ["lint:python", "lint:shell", "lint:workflows"]
     assert "depends" not in data["tasks"]["format"]
     assert "depends" not in data["tasks"]["format:check"]
     assert "depends" not in data["tasks"]["unit"]
@@ -78,13 +87,16 @@ def test_mise_toml_is_valid_toml_with_ruff(generated_with_ruff: Path):
 
 
 def test_mise_toml_ci_runs_ordered_readonly_steps(generated_with_ruff: Path):
-    """CI must run lint, format:check, unit in order via run steps, not parallel depends."""
+    """CI must run lint, format:check, hooks, unit in order via run steps."""
     data = tomllib.loads((generated_with_ruff / "mise.toml").read_text())
     ci_run = data["tasks"]["ci"]["run"]
     assert isinstance(ci_run, list)
     step_tasks = [step["task"] for step in ci_run if isinstance(step, dict) and "task" in step]
-    assert step_tasks == ["lint", "format:check", "unit"]
+    assert step_tasks == ["lint", "format:check", "hooks", "unit"]
     assert data["tasks"]["ci"].get("env", {}).get("CI") == "true"
+    verify_run = data["tasks"]["verify"]["run"]
+    verify_steps = [step["task"] for step in verify_run if isinstance(step, dict) and "task" in step]
+    assert verify_steps == ["lint", "format:check", "hooks", "test"]
 
 
 def test_mise_toml_is_valid_toml_without_ruff(generated_basic: Path):
@@ -92,14 +104,24 @@ def test_mise_toml_is_valid_toml_without_ruff(generated_basic: Path):
     content = (generated_basic / "mise.toml").read_text()
     data = tomllib.loads(content)
     assert "tasks" in data
-    assert "lint" not in data["tasks"]
+    assert "lint" in data["tasks"]
     assert "lint:python" not in data["tasks"]
     assert "lint:shell" in data["tasks"]
+    assert "lint:workflows" in data["tasks"]
+    assert data["tasks"]["lint"].get("depends") == ["lint:shell", "lint:workflows"]
     assert "fix:python" not in data["tasks"]
     assert "format" not in data["tasks"]
     assert "format:check" not in data["tasks"]
     assert "fix" not in data["tasks"]
     assert "ci" not in data["tasks"]
+    assert "verify" not in data["tasks"]
+    assert "hooks" in data["tasks"]
+    assert "doctor" in data["tasks"]
+    assert "bootstrap" in data["tasks"]
+    assert "ci:act" in data["tasks"]
+    assert "changelog" in data["tasks"]
+    assert "clean" in data["tasks"]
+    assert "clean:all" in data["tasks"]
     assert "unit" in data["tasks"]
     assert "test" in data["tasks"]
     assert data["env"]["_"]["file"] == ".env"
@@ -145,6 +167,47 @@ def test_mise_toml_pins_prek_tool(generated_basic: Path):
     """Generated mise.toml must pin prek so hooks run from mise."""
     data = tomllib.loads((generated_basic / "mise.toml").read_text())
     assert data["tools"]["prek"] == "0.5.6"
+
+
+def test_mise_toml_pins_local_cicd_tools(generated_with_ruff: Path):
+    """Generated mise.toml must pin act/actionlint/git-cliff for local CI/CD."""
+    data = tomllib.loads((generated_with_ruff / "mise.toml").read_text())
+    assert data["tools"]["act"] == "0.2"
+    assert data["tools"]["actionlint"] == "1.7"
+    assert data["tools"]["git-cliff"] == "2.13"
+
+
+def test_mise_toml_agent_entrypoints(generated_with_ruff: Path):
+    """Generated projects must expose doctor/bootstrap/hooks/verify/clean:all."""
+    data = tomllib.loads((generated_with_ruff / "mise.toml").read_text())
+    bootstrap_run = data["tasks"]["bootstrap"]["run"]
+    bootstrap_steps = [step["task"] for step in bootstrap_run if isinstance(step, dict) and "task" in step]
+    assert bootstrap_steps == ["install", "doctor"]
+    assert bootstrap_run[0] == "mise trust"
+    assert "mise doctor" in data["tasks"]["doctor"]["run"]
+    assert "prek run --all-files" in data["tasks"]["hooks"]["run"]
+    assert "act push -j test" in data["tasks"]["ci:act"]["run"]
+    assert "git-cliff" in data["tasks"]["changelog"]["run"]
+    assert ".venv/" in data["tasks"]["clean:all"]["run"]
+    assert ".venv/" not in data["tasks"]["clean"]["run"]
+
+
+def test_mise_toml_workflows_lint_skips_without_github(generated_without_github_integration: Path):
+    """Workflow lint must skip gracefully when github_integration is disabled."""
+    content = (generated_without_github_integration / "mise.toml").read_text()
+    data = tomllib.loads(content)
+    assert "lint:workflows" in data["tasks"]
+    run = data["tasks"]["lint:workflows"]["run"]
+    assert "[[ -d .github/workflows ]]" in run
+    assert "No workflows found, skipping." in run
+    assert not (generated_without_github_integration / ".github").exists()
+
+
+def test_mise_toml_workflows_lint_uses_modern_bash(generated_with_ruff: Path):
+    """Workflow lint guard must use modern bash, not legacy POSIX tests."""
+    content = (generated_with_ruff / "mise.toml").read_text()
+    assert "if [ " not in content
+    assert "[[ -d .github/workflows ]]" in content
 
 
 def test_mise_toml_install_runs_mise_prek(generated_basic: Path):
