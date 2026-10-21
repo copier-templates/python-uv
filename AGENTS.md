@@ -2,11 +2,15 @@
 
 This repo is a **Copier template** for Python + `uv` projects, not a regular app:
 
-- `*.jinja` files are templates rendered into generated projects; plain files are this repo's own tooling.
+- `templates/` holds the Copier payload (`_subdirectory: templates` in `copier.yaml`).
+  `*.jinja` files under `templates/` are rendered into generated projects;
+  verbatim files under `templates/` (`prek.toml`, `.editorconfig`,
+  `.github/workflows/*.yml`) are copied as-is. Plain files outside `templates/`
+  are this repo's own tooling.
 - `my_tests/` validates the template by rendering it with Copier and asserting on the output.
-  `tests/` is itself a template (note `__init__.py.jinja`).
+  `templates/tests/` is itself a template (note `__init__.py.jinja`).
 - `scripts/`, `docs/`, `examples/`, `my_tests/` — and this `AGENTS.md` itself —
-  never land in generated projects (`_exclude` in `copier.yaml`, enforced by
+  never land in generated projects (only `templates/` is copied, enforced by
   `my_tests/test_exclusions.py`). Agent guidance for generated projects is
   deliberately not shipped; their `mise.toml` task contract (rule 4) is the interface.
 
@@ -42,13 +46,13 @@ keep both in sync (see below).
    backticks, or newline-delimited `| xargs` (enforced by the
    `script-must-have-extension` / `check-executables-have-shebangs` hooks and
    `test_mise_toml_uses_modern_bash` / `test_mise_toml_shebang_only_where_bash_needed`).
-3. **Changing any `*.jinja` template? Add or update a regression test in `my_tests/`.**
-   Changing the task graph in `mise.toml.jinja` requires updating
-   `my_tests/test_conditional_sections.py`. Hook versions live in the single
-   `prek.toml`, which ships verbatim into generated projects
-   (like `.github/workflows/*.yml`) — there is no `.jinja` mirror to keep
-   in sync.
-4. **Keep the template contract aligned.** `mise.toml` (this repo) and `mise.toml.jinja`
+3. **Changing any file under `templates/`? Add or update a regression test in `my_tests/`.**
+   Changing the task graph in `templates/mise.toml.jinja` requires updating
+   `my_tests/test_conditional_sections.py`. Hook versions live in `prek.toml`
+   (root) and `templates/prek.toml` (payload, shipped verbatim into generated
+   projects like `templates/.github/workflows/*.yml`) — keep both in sync;
+   there is no `.jinja` mirror.
+4. **Keep the template contract aligned.** `mise.toml` (this repo) and `templates/mise.toml.jinja`
    (generated projects) must expose the same task names (`lint`, `lint:python`,
    `lint:shell`, `format`, `unit`, `test`, `ci`, `clean`) so muscle memory transfers.
 5. **Refactor in small, verifiable steps.** One behavior change per commit, run the

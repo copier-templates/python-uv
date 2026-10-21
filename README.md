@@ -158,11 +158,11 @@ If you need to disable GitHub integration after customizing `.github/`:
 ### 📦 Answers Files Explained
 | File | Purpose |
 |------|---------|
-| `.copier-answers.yml` | Auto-maintained answers file for future updates (never edit manually). Now explicitly generated because the template includes `.copier-answers.yml.jinja`. |
+| `.copier-answers.yml` | Auto-maintained answers file for future updates (never edit manually). Now explicitly generated because the template includes `templates/{{ _copier_conf.answers_file }}.jinja`. |
 | `examples/config-basic.yml` | Example data file passed with `--data-file` (excluded from rendered projects). |
 
 ### ⚙️ Internal Template Artifacts Not Copied
-The template excludes helper folders (`examples/`, `my_tests/`) from generated projects via `_exclude` in `copier.yaml`. This keeps consumer projects clean.
+Only `templates/` is copied into generated projects (`_subdirectory: templates` in `copier.yaml`). Helper folders (`examples/`, `my_tests/`, `docs/`, `scripts/`) stay outside `templates/` so consumer projects stay clean. License partials under `templates/licenses/` are excluded from copy via `_exclude`.
 
 To create a new variant template from existing data file configuration:
 ```bash
@@ -172,7 +172,7 @@ For advanced configuration (tasks, migrations, multiple templates) see the Copie
 
 ## ✏️ Customization
 
-You can edit the template files (`*.jinja`) to fit your team's standards. See [Copier documentation](https://copier.readthedocs.io/en/stable/) for advanced templating and options.
+You can edit the template files under `templates/` (`*.jinja` plus verbatim payload like `templates/prek.toml` and `templates/.github/workflows/*.yml`) to fit your team's standards. See [Copier documentation](https://copier.readthedocs.io/en/stable/) for advanced templating and options.
 
 ## 🧪 Testing the Template
 

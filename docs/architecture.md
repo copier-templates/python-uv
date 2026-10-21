@@ -18,41 +18,54 @@ The main template configuration file that defines:
 
 ## Template Structure
 
+Copier renders only `templates/` (`_subdirectory: templates` in `copier.yaml`).
+All `*.jinja` files live under `templates/`; verbatim payload files
+(`prek.toml`, `.editorconfig`, `.github/workflows/*.yml`) live alongside them.
+License partials under `templates/licenses/` are Jinja includes excluded from copy.
+
 ```
-├── src/{{project_name}}/        # Main source code directory (templated)
-│   ├── __init__.py.jinja        # Package initialization
-│   └── main.py.jinja            # Main module
-├── tests/                       # Test directory structure (templated)
-│   ├── __init__.py.jinja
-│   └── unit/
-│       └── test_init.py.jinja
-├── pyproject.toml.jinja         # Project configuration (templated)
-├── README.md.jinja              # Project README (templated)
-├── mise.toml.jinja               # Task runner config (templated)
-├── .copier-answers.yml.jinja    # Answers tracking (templated)
-├── {{ _copier_conf.answers_file }}.jinja  # Answers file configuration
+├── templates/                   # Copier payload (_subdirectory)
+│   ├── src/{{module_name}}/     # Main source code directory (templated)
+│   │   ├── __init__.py.jinja    # Package initialization
+│   │   └── py.typed.jinja       # Typed-package marker (lib only)
+│   ├── tests/                   # Test directory structure (templated)
+│   │   ├── __init__.py.jinja
+│   │   └── unit/
+│   │       └── test_init.py.jinja
+│   ├── .github/workflows/       # CI workflows (verbatim)
+│   │   ├── test.yml
+│   │   └── prek.yml
+│   ├── licenses/                # License partials (included, excluded from copy)
+│   ├── .editorconfig            # Editor config (verbatim)
+│   ├── .gitattributes.jinja
+│   ├── .gitignore.jinja
+│   ├── pyproject.toml.jinja     # Project configuration (templated)
+│   ├── README.md.jinja          # Project README (templated)
+│   ├── mise.toml.jinja          # Task runner config (templated)
+│   ├── main.py.jinja            # App entrypoint (app only)
+│   ├── LICENSE.jinja            # License file (optional, includes licenses/*)
+│   ├── prek.toml                # Git hooks (verbatim, keep in sync with root)
+│   └── {{ _copier_conf.answers_file }}.jinja  # Answers file configuration
 │
-├── examples/                    # Example data files (EXCLUDED)
+├── examples/                    # Example data files (outside templates/, not copied)
 │   └── config-basic.yml         # Sample answers file
-├── my_tests/                    # Test suite (EXCLUDED)
+├── my_tests/                    # Test suite (outside templates/, not copied)
 │   ├── conftest.py
 │   ├── test_core_structure.py
 │   ├── test_exclusions.py
 │   └── test_conditional_sections.py
-├── copier.yaml                  # Template configuration
+├── copier.yaml                  # Template configuration (_subdirectory: templates)
 └── README.md                    # Template documentation
 ```
 
 ## Excluded Directories
 
-Files in these directories are **NOT** copied to generated projects:
+Only `templates/` is copied to generated projects. Everything outside it —
+`examples/`, `my_tests/`, `docs/`, `scripts/`, `copier.yaml` itself — is
+template tooling and never lands in generated projects.
 
-- `examples/` - Example configuration and data files
-- `my_tests/` - Template validation tests
-- `.git/` - Git metadata (Copier default)
-- `__pycache__/` - Python cache (Copier default)
-
-Exclusion is configured in `copier.yaml` via the `_exclude` key.
+Within `templates/`, `licenses/` partials are excluded from copy via `_exclude`
+(they are only used through `{% include %}` in `LICENSE.jinja`).
 
 ## Templating Conventions
 
@@ -91,8 +104,8 @@ See `my_tests/test_conditional_sections.py` for expected behavior and the offici
 
 Example:
 ```
-README.md.jinja       # Rendered with Jinja2
-LICENSE               # Copied without processing
+templates/README.md.jinja       # Rendered with Jinja2
+templates/prek.toml             # Copied without processing
 ```
 
 ## Testing

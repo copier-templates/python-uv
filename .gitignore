@@ -170,6 +170,16 @@ cython_debug/
 !.github/
 !.github/workflows/
 !.github/workflows/**
+# Exceptions: Include payload files under templates/ (Copier _subdirectory)
+!templates/
+!templates/**
+!templates/.editorconfig
+!templates/.gitattributes.jinja
+!templates/.gitignore.jinja
+!templates/.github/
+!templates/.github/workflows/
+!templates/.github/workflows/**
+!templates/prek.toml
 # But exclude everything else in .github
 .github/**
 !.github/workflows/

@@ -93,6 +93,6 @@ different setup; keep the `[act-local]` prefix so such steps are recognizable.
 
 ## Copier note
 
-This `scripts/` folder is template-developer tooling: it is listed in
-`copier.yaml` `_exclude` and covered by `my_tests/test_exclusions.py`, so it
-never lands in generated projects.
+This `scripts/` folder is template-developer tooling: it lives outside
+`templates/` (`_subdirectory: templates` in `copier.yaml`) and is covered by
+`my_tests/test_exclusions.py`, so it never lands in generated projects.

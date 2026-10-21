@@ -76,6 +76,7 @@ github_integration:
     default: true
 
 _templates_suffix: .jinja
+_subdirectory: templates
 _envops:
     block_start_string: "{%"
     block_end_string: "%}"
@@ -83,30 +84,10 @@ _envops:
     variable_end_string: "}}"
 
 _exclude:
-    - "copier.yaml"
-    - "my_tests"
-    - "docs"
-    - "AGENTS.md"
-    - "examples"
-    - "hooks"
-    - "scripts"
-    - "pytest.ini"
-    - "SECURITY.md"
-    - "uv.lock"
-    - ".git"
-    - ".github/instructions"
-    - ".github/copilot-instructions.md"
-    - ".github/extensions"
-    - ".vscode"
-    - ".chlog"
-    - ".pytest_cache"
-    - ".ruff_cache"
-    - ".DS_Store"
-    - "**/*.egg-info"
     - "licenses"
+    - "licenses/*"
 
 _tasks:
-    - "rm -f .github/instructions/copier.instructions.md"
     - "{% if project_type == 'app' %}rm -rf src{% endif %}"
     - "{% if project_type != 'app' %}rm -f main.py{% endif %}"
     - "{% if project_type != 'lib' %}rm -f src/{{module_name}}/py.typed{% endif %}"
