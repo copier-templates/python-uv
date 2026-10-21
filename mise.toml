@@ -26,7 +26,11 @@ prek update
 """
 
 [tasks."lint:python"]
-description = "Lint Python with Ruff"
+description = "Lint Python with Ruff (check-only)"
+run = "uv run ruff check ."
+
+[tasks."fix:python"]
+description = "Lint Python with Ruff and autofix"
 run = "uv run ruff check --fix ."
 
 [tasks."lint:shell"]
@@ -55,6 +59,14 @@ depends = ["lint:python", "lint:shell"]
 [tasks.format]
 description = "Format code"
 run = "uv run ruff format ."
+
+[tasks."format:check"]
+description = "Check formatting (CI-safe)"
+run = "uv run ruff format --check ."
+
+[tasks.fix]
+description = "Autofix Python lint and formatting (ordered)"
+run = [{ task = "fix:python" }, { task = "format" }]
 
 [tasks.unit]
 description = "Run template validation tests"
