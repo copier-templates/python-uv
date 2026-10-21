@@ -100,3 +100,10 @@ _tasks:
       when: "{{ _copier_operation == 'copy' }}"
     - command: ["mise", "trust"]
       when: "{{ _copier_operation == 'copy' }}"
+
+_message_after_copy: |
+    Your project "{{ project_name }}" was created.
+    Next steps:
+      cd {{ _folder_name }}
+      mise run install
+      mise run ci
