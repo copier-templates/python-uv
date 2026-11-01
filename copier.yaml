@@ -1,0 +1,132 @@
+project_name:
+    type: str
+    help: What is your project name?
+    validator: >-
+        {% if not project_name.replace('_', '').replace('-', '').isalnum() %}
+        Project name must be alphanumeric with underscores/dashes only
+        {% endif %}
+
+project_type:
+    type: str
+    help: Which uv-style project type should be generated?
+    choices:
+        Application: app
+        Packaged application: package
+        Library: lib
+    default: package
+
+python_version:
+    type: str
+    help: Which Python version should the project target? (3.11 or newer)
+    choices:
+        # python-version-choices: begin (managed by scripts/update_python_versions.py, do not edit)
+        "3.15": "3.15"
+        "3.14": "3.14"
+        "3.13": "3.13"
+        "3.12": "3.12"
+        "3.11": "3.11"
+        # python-version-choices: end
+    default: "3.11"
+
+module_name:
+    type: str
+    default: "{{ project_name|replace('-', '_') }}"
+    when: false
+
+project_description:
+    type: str
+    help: Please type a short description of your project
+    default: "A modern Python application."
+
+author_name:
+    type: str
+    help: Please type the author name
+    default: "Patryk"
+
+author_email:
+    type: str
+    help: Please type the author email
+    default: "8299306+kpatryk@users.noreply.github.com"
+    validator: >-
+        {% set _ae = (author_email or '') %}
+        {% if '@' not in _ae or _ae.split('@')|length != 2 or _ae.split('@')[0] == '' or _ae.split('@')[1] == '' or '.' not in _ae.split('@')[1] or ' ' in _ae %}
+        Email must be a valid address like username@test.com
+        {% endif %}
+
+production_deps:
+    type: json
+    help: "Enter production dependencies as a JSON array (e.g., [\"httpx[http2]\"])"
+    default: []
+
+dev_deps:
+    type: json
+    help: "Enter development dependencies as a JSON array"
+    default: ["pytest", "pytest-cov", "ruff"]
+
+include_license:
+    type: bool
+    help: "Include a LICENSE file in the project?"
+    default: false
+
+license_type:
+    type: str
+    help: "Choose a license type"
+    choices:
+        MIT: mit
+        Apache 2.0: apache-2.0
+        GNU General Public License v2.0: gpl-2.0
+        GNU General Public License v3.0: gpl-3.0
+        GNU Lesser General Public License v2.0: lgpl-2.0
+        GNU Lesser General Public License v2.1: lgpl-2.1
+        GNU Lesser General Public License v3.0: lgpl-3.0
+        Mozilla Public License 2.0: mpl-2.0
+    default: mit
+    when: "{{ include_license }}"
+
+github_integration:
+    type: bool
+    help: "Include GitHub workflow templates?"
+    default: false
+
+_min_copier_version: "9.0.0"
+_templates_suffix: .jinja
+_subdirectory: templates
+_preserve:
+    - ".copier-answers.yml"
+_envops:
+    block_start_string: "{%"
+    block_end_string: "%}"
+    variable_start_string: "{{"
+    variable_end_string: "}}"
+    undefined: "jinja2.StrictUndefined"
+
+_exclude:
+    - "licenses"
+    - "licenses/*"
+    - "{% if project_type == 'app' %}src{% endif %}"
+    - "{% if project_type != 'app' %}main.py{% endif %}"
+    - "{% if project_type != 'lib' %}src/{{module_name}}/py.typed{% endif %}"
+    - "{% if not include_license %}LICENSE{% endif %}"
+    - "{% if not github_integration %}.github{% endif %}"
+
+_tasks:
+    - ["uv", "python", "install", '{{ python_version }}']
+    - ["uv", "sync"]
+    - command: ["mise", "trust"]
+    - command: >-
+        if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then git add -A && (git diff --cached --quiet || git commit --no-verify -m 'chore: scaffold from template'); else git init .; git add -A && (git diff --cached --quiet || git commit --no-verify -m 'Init commit'); fi
+      when: "{{ _copier_operation == 'copy' }}"
+    - command: >-
+        if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then git add -A && (git diff --cached --quiet || git commit --no-verify -m 'chore: update from template'); fi
+      when: "{{ _copier_operation == 'update' }}"
+    - command: >-
+        if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then mise run install; fi
+      when: "{{ _copier_operation in ['copy', 'update'] }}"
+    - command: >-
+        if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then mise run ci; fi
+      when: "{{ _copier_operation in ['copy', 'update'] and 'pytest' in dev_deps and 'ruff' in dev_deps }}"
+
+_message_after_copy: |
+    Your project "{{ project_name }}" was created and verified (`mise run install` + `mise run ci` passed).
+    Next steps:
+      cd {{ _folder_name }}
