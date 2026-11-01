@@ -1,0 +1,153 @@
+[tools]
+act = "0.2"
+actionlint = "1.7"
+git-cliff = "2.14.2"
+gum = "2.0.2"
+prek = "0.5.6"
+python = "3.12"
+shellcheck = "0.11"
+uv = "0.11"
+
+[env]
+_.python.venv = { path = ".venv", create = true }
+_.file = ".env"
+
+[tasks.install]
+description = "Install development dependencies"
+run = """
+uv sync --dev
+prek install --force
+"""
+
+[tasks.upgrade]
+description = "Upgrade development dependencies"
+run = """
+uv sync --dev --upgrade
+prek update
+"""
+
+[tasks."lint:python"]
+description = "Lint Python with Ruff (check-only)"
+run = "uv run ruff check ."
+
+[tasks."fix:python"]
+description = "Lint Python with Ruff and autofix"
+run = "uv run ruff check --fix ."
+
+[tasks."lint:shell"]
+description = "Lint shell scripts with ShellCheck"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+files=()
+n=0
+while IFS= read -r -d '' f; do files+=("$f"); n=$((n + 1)); done < <(git ls-files -z '*.sh' 2>/dev/null || true)
+if (( n == 0 )); then
+  while IFS= read -r -d '' f; do files+=("$f"); n=$((n + 1)); done < <(find . -path ./.git -prune -o -path ./.venv -prune -o -type f -name '*.sh' -print0 2>/dev/null || true)
+fi
+if (( n == 0 )); then
+  printf 'No shell scripts found, skipping.\n'
+  exit 0
+fi
+shellcheck -x "${files[@]}"
+"""
+
+[tasks."lint:workflows"]
+description = "Lint GitHub Actions workflows with actionlint"
+run = "actionlint .github/workflows/*.yml templates/.github/workflows/*.yml"
+
+[tasks.lint]
+description = "Run all linters (Python + shell + workflows)"
+depends = ["lint:python", "lint:shell", "lint:workflows"]
+
+[tasks.format]
+description = "Format code"
+run = "uv run ruff format ."
+
+[tasks."format:check"]
+description = "Check formatting (CI-safe)"
+run = "uv run ruff format --check ."
+
+[tasks.fix]
+description = "Autofix Python lint and formatting (ordered)"
+run = [{ task = "fix:python" }, { task = "format" }]
+
+[tasks."test:unit"]
+description = "Run template validation tests"
+timeout = "10m"
+run = "uv run pytest tests/"
+
+[tasks."test:integration"]
+description = "Run integration tests (skips when tests/integration is absent)"
+timeout = "10m"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ -d tests/integration ]]; then
+  uv run pytest tests/integration/
+else
+  printf 'No integration tests found, skipping.\\n'
+fi
+"""
+
+[tasks.test]
+description = "Run all tests"
+depends = ["test:unit", "test:integration"]
+
+[tasks.hooks]
+description = "Run all prek hooks"
+run = "prek run --all-files --show-diff-on-failure"
+
+[tasks.ci]
+description = "Run CI checks (ordered)"
+env = { CI = "true" }
+run = [{ task = "lint" }, { task = "format:check" }, { task = "hooks" }, { task = "test:unit" }]
+
+[tasks."ci:full"]
+description = "Full local gate, mirrors GitHub Actions"
+env = { CI = "true" }
+run = [{ task = "lint" }, { task = "format:check" }, { task = "hooks" }, { task = "test" }]
+
+[tasks.doctor]
+description = "Diagnose toolchain"
+run = ["mise ls", "mise doctor", "uv --version", "prek --version"]
+
+[tasks.bootstrap]
+description = "First-run setup for humans and agents (trust + install + doctor)"
+run = ["mise trust", { task = "install" }, { task = "doctor" }]
+
+[tasks."ci:docker"]
+description = "Run GitHub test job locally in Docker (requires Docker)"
+run = "act push -j test --container-architecture linux/amd64"
+
+[tasks.changelog]
+description = "Preview changelog"
+run = "git-cliff -l --strip all"
+
+[tasks.release]
+description = "Cut a release: bump version, changelog, commit, tag (no push)"
+run = "./scripts/release.sh"
+
+[tasks."update:python-versions"]
+description = "Refresh Python version choices in copier.yaml from endoflife.date"
+run = "uv run scripts/update_python_versions.py"
+
+[tasks.clean]
+description = "Clean build and cache artifacts"
+run = """
+rm -rf build/ dist/ .pytest_cache .ruff_cache htmlcov .coverage
+find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
+find . -type d -name '*.egg-info' -exec rm -rf {} + 2>/dev/null || true
+find . -type f -name '*.pyc' -delete 2>/dev/null || true
+"""
+
+[tasks."clean:all"]
+description = "Clean all artifacts including .venv"
+run = """
+rm -rf build/ dist/ .venv/ .pytest_cache .ruff_cache htmlcov .coverage
+find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
+find . -type d -name '*.egg-info' -exec rm -rf {} + 2>/dev/null || true
+find . -type f -name '*.pyc' -delete 2>/dev/null || true
+"""
