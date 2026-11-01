@@ -1,0 +1,159 @@
+[project]
+name = "{{project_name}}"
+version = "0.1.0"
+description = "{{project_description}}"
+readme = "README.md"
+authors = [
+    { name = "{{author_name}}", email = "{{author_email}}" }
+]
+requires-python = ">={{ python_version }}"
+
+{%- if include_license %}
+{%- set spdx_map = {
+    'mit': 'MIT',
+    'apache-2.0': 'Apache-2.0',
+    'gpl-2.0': 'GPL-2.0-only',
+    'gpl-3.0': 'GPL-3.0-only',
+    'lgpl-2.0': 'LGPL-2.0-only',
+    'lgpl-2.1': 'LGPL-2.1-only',
+    'lgpl-3.0': 'LGPL-3.0-only',
+    'mpl-2.0': 'MPL-2.0'
+} %}
+
+license = "{{ spdx_map.get(license_type, license_type) }}"
+license-files = ["LICENSE"]
+
+{%- endif %}
+
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3"
+]
+
+dependencies = [
+{%- for dep in production_deps %}
+    "{{dep}}",
+{%- endfor %}
+]
+
+{%- if project_type == "package" %}
+
+[project.scripts]
+{{project_name}} = "{{module_name}}:main"
+{%- endif %}
+
+{%- if project_type != "app" %}
+
+[build-system]
+requires = ["uv_build>=0.11.8,<0.12.0"]
+build-backend = "uv_build"
+{%- endif %}
+
+[dependency-groups]
+dev = [
+{%- for dep in dev_deps %}
+    "{{dep}}",
+{%- endfor %}
+]
+
+{%- if "pytest" in dev_deps %}
+
+[tool.pytest.ini_options]
+{%- if project_type != "app" %}
+pythonpath = ["src"]
+{%- else %}
+pythonpath = ["."]
+{%- endif %}
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+markers = [
+    "unit: marks tests as unit tests",
+    "integration: marks tests as integration tests",
+]
+addopts = [
+    "--durations=5",
+    "--durations-min=0.0",
+    "--tb=short",
+{%- if "pytest-cov" in dev_deps %}
+    "--cov={% if project_type == 'app' %}main{% else %}{{module_name}}{% endif %}",
+    "--cov-report=html",
+    "--cov-report=term-missing",
+{%- endif %}
+]
+{%- endif %}
+
+{%- if "pytest-cov" in dev_deps %}
+
+[tool.coverage.run]
+branch = true
+omit = ["*/tests/*"]
+parallel = true
+relative_files = true
+{%- if project_type == "app" %}
+source = ["."]
+{%- else %}
+source_pkgs = ["{{module_name}}"]
+{%- endif %}
+
+[tool.coverage.report]
+skip_empty = true
+skip_covered = false
+precision = 2
+exclude_also = [
+    # Don't complain about missing debug-only code:
+    "def __repr__",
+    "if self\\.debug:",
+
+    # Don't complain if tests don't hit defensive assertion code:
+    "raise AssertionError",
+    "raise NotImplementedError",
+
+    # Don't complain about abstract methods:
+    "@(abc\\.)?abstractmethod",
+]
+{%- endif %}
+
+{%- if "ruff" in dev_deps %}
+
+[tool.ruff]
+line-length = 120
+target-version = "py{{ python_version|replace('.', '') }}"
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # Pyflakes
+    "I",    # isort
+    "Q",    # flake8-quotes
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "C90",  # mccabe complexity
+    "SIM",  # flake8-simplify
+    "DTZ",  # flake8-datetimez
+    "ARG",  # unused arguments
+    "PLE",  # Pylint errors
+    "PLW",  # Pylint warnings
+    "PLC",  # Pylint conventions
+    "UP",   # pyupgrade
+    "S",    # flake8-bandit
+]
+ignore = [
+    "E501",  # line-too-long (formatter handles wrapping, but may exceed limit)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/unit/**/*.py" = ["ARG001"]
+"tests/**/*.py" = ["S101", "S105", "S106"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["{{module_name}}"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+{%- endif %}

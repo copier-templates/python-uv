@@ -1,0 +1,86 @@
+[![mise](https://img.shields.io/badge/mise-enabled-purple)](https://mise.jdx.dev/)
+
+# {{project_name}}
+
+{{project_description}}
+
+Project scaffolded from `copier` template.
+
+## Installation
+
+Install dependencies:
+```bash
+mise run install
+```
+
+## Usage
+
+Run the project:
+```bash
+{% if project_type == "app" %}
+uv run python main.py
+{% elif project_type == "package" %}
+uv run {{project_name}}
+{% else %}
+uv run python -c "from {{module_name}} import hello; print(hello())"
+{% endif %}
+```
+
+## Development
+
+{% if "pytest" in dev_deps %}
+### Running Tests
+```bash
+mise run test
+```
+{% endif %}
+{% if "ruff" in dev_deps %}
+### Code Quality
+```bash
+mise run lint
+```
+{% endif %}
+
+### Changelog
+
+Preview the changelog:
+```bash
+mise run changelog
+```
+
+### Release
+
+Cut a release (bumps `pyproject.toml`, regenerates `CHANGELOG.md`, commits, tags — never pushes):
+```bash
+mise run release
+```
+
+Non-interactive (CI-safe):
+```bash
+mise run release -- --version 0.2.0 --yes
+```
+
+## Project Structure
+```
+{% if project_type == "app" %}
+main.py                    # Root application entrypoint
+{% else %}
+src/{{module_name}}/       # Main package
+{% endif %}
+{%- if "pytest" in dev_deps %}
+tests/unit/              # Unit tests
+{%- endif %}
+```
+
+## Notes
+
+This project was generated using the copier template. To refresh with upstream improvements later run:
+```bash
+copier update
+```
+Do not manually edit the `.copier-answers.yml` file (it is auto-maintained by Copier).
+
+To re-create this project non-interactively from the template in a new location you can prepare a data file with the needed keys and run:
+```bash
+copier copy --data-file path/to/data.yml /path/to/template /new/dest
+```

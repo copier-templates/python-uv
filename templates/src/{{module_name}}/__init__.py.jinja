@@ -1,0 +1,17 @@
+"""{{project_description}}."""
+
+__version__ = "0.1.0"
+__author__ = "{{author_name}}"
+
+{% if project_type == "lib" %}
+def hello() -> str:
+    """Return a greeting from the generated library."""
+    return "Hello from {{project_name}}!"
+{% else %}
+def main() -> None:
+    """Execute the main application logic."""
+    print("Hello from {{project_name}}!")
+    print("{{project_description}}")
+{% endif %}
+
+__all__ = ["{% if project_type == 'lib' %}hello{% else %}main{% endif %}"]
