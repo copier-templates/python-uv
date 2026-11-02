@@ -21,3 +21,17 @@ Workers never spawn sub-agents; `@reviewer` stays read-only. For orchestrator pr
 | `@reviewer` | `.agents/reviewer.md` | Read-only fresh-context diff review |
 
 How-to: [Changing `templates`/](CODING_STANDARDS.md#changing-templates), [Template contract](CODING_STANDARDS.md#template-contract), [Shell](CODING_STANDARDS.md#shell), [Refactoring](CODING_STANDARDS.md#refactoring), [Security and `copier.yaml`](CODING_STANDARDS.md#security-and-copieryaml), [Commits and branches](CODING_STANDARDS.md#commits-and-branches), [Mise task map](CODING_STANDARDS.md#mise-task-map).
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs live in GitHub Issues (`copier-templates/python-uv`) via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-role vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` at the root, ADRs in `docs/adr/`. See `docs/agents/domain.md`.
