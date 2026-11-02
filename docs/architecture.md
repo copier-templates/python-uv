@@ -29,6 +29,23 @@ The main template configuration file that defines:
   - `templates/pyproject.toml.jinja` sets `requires-python = ">=<version>"` and Ruff `target-version = "py<major><minor>"`.
   - `.copier-answers.yml` records the answer so `copier update` replays it.
 
+### Computed Render Facts
+
+Six hidden `bool` questions derive render facts from the answers above instead of asking the user:
+
+- `is_app`, `is_lib`, `is_package` — derived from `project_type`
+- `with_ruff`, `with_pytest`, `with_pytest_cov` — derived from `dev_deps` membership
+
+- **Declaration**: Plain `bool` questions with a Jinja `default` (e.g. `default: "{{ 'pytest' in dev_deps }}"`) and `when: false`. The `when: false` hides them from the interactive prompt and — because Copier omits `when: false` questions from the answers file — from `.copier-answers.yml` as well. That omission is a contract the refactor leans on: the facts are re-derived on every render instead of being replayed verbatim by `copier update`.
+- **Ordering**: Each fact is declared in `copier.yaml` *after* the question it depends on (`project_type`, `dev_deps`). Ordering matters because `_envops.undefined` is `jinja2.StrictUndefined`: evaluating a fact's default before its dependency exists would raise instead of rendering.
+- **Naming**: `_`-prefixed keys are reserved by Copier for its own settings (`_subdirectory`, `_exclude`, `_tasks`, ...), so the facts use plain names.
+- **Consumers**:
+  - `_exclude` drops `src/`, `main.py`, and the lib-only `py.typed` based on `is_app` and `is_lib`.
+  - `_tasks` gates the `mise run ci` post-copy step on `with_pytest and with_ruff`.
+  - `templates/pyproject.toml.jinja`, `templates/mise.toml.jinja`, `templates/README.md.jinja`, `templates/src/{{module_name}}/__init__.py.jinja`, and `templates/tests/unit/test_init.py.jinja` evaluate the facts instead of re-evaluating `project_type` / `dev_deps` conditions inline.
+
+The existing `module_name` question uses the same mechanism: `type: str`, a Jinja `default`, and `when: false`.
+
 ## Template Structure
 
 Copier renders only `templates/` (`_subdirectory: templates` in `copier.yaml`).

@@ -1,13 +1,13 @@
 """Test the main application entry point."""
 
-{% if project_type == "app" -%}
+{% if is_app -%}
 from main import main
-{% elif project_type == "lib" -%}
+{% elif is_lib -%}
 from {{module_name}} import hello
 {% else -%}
 from {{module_name}} import main
 {% endif %}
-{% if project_type == "lib" %}
+{% if is_lib %}
 class TestHelloFunction:
     """Test cases for the library helper."""
 

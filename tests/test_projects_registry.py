@@ -17,6 +17,8 @@ from _projects import ALIASES, BASE_DATA, VARIANTS, ProjectRegistry
 EXPECTED_VARIANTS = {
     "basic",
     "ruff",
+    "ruff-only",
+    "pytest-no-cov",
     "python313",
     "license",
     "license-ruff",
@@ -66,7 +68,7 @@ def _recording_render_fn(
 
 
 def test_variants_table_covers_expected_names() -> None:
-    """`VARIANTS` must expose exactly the ten render variants."""
+    """`VARIANTS` must expose exactly the twelve render variants."""
     assert set(VARIANTS.keys()) == EXPECTED_VARIANTS
 
 

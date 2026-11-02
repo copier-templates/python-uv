@@ -37,7 +37,7 @@ if (( n == 0 )); then
 fi
 shellcheck -x "${files[@]}"
 """
-{%- if "ruff" in dev_deps %}
+{%- if with_ruff %}
 
 [tasks."lint:python"]
 description = "Lint Python with Ruff (check-only)"
@@ -69,7 +69,7 @@ else
   printf 'No workflows found, skipping.\n'
 fi
 """
-{%- if "ruff" in dev_deps %}
+{%- if with_ruff %}
 
 [tasks.format]
 description = "Format code"
@@ -83,7 +83,7 @@ run = "uv run ruff format --check ."
 description = "Autofix Python lint and formatting (ordered)"
 run = [{ task = "fix:python" }, { task = "format" }]
 {%- endif %}
-{%- if "pytest" in dev_deps %}
+{%- if with_pytest %}
 
 [tasks."test:unit"]
 description = "Run unit tests"
@@ -108,7 +108,7 @@ fi
 description = "Run all tests"
 depends = ["test:unit", "test:integration"]
 
-{%- if "ruff" in dev_deps %}
+{%- if with_ruff %}
 [tasks.ci]
 description = "Run CI checks (ordered)"
 env = { CI = "true" }

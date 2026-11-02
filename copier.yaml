@@ -88,6 +88,37 @@ github_integration:
     help: "Include GitHub workflow templates?"
     default: false
 
+# Computed render facts (when: false — derived from the answers above, omitted from the answers file).
+is_app:
+    type: bool
+    default: "{{ project_type == 'app' }}"
+    when: false
+
+is_lib:
+    type: bool
+    default: "{{ project_type == 'lib' }}"
+    when: false
+
+is_package:
+    type: bool
+    default: "{{ project_type == 'package' }}"
+    when: false
+
+with_ruff:
+    type: bool
+    default: "{{ 'ruff' in dev_deps }}"
+    when: false
+
+with_pytest:
+    type: bool
+    default: "{{ 'pytest' in dev_deps }}"
+    when: false
+
+with_pytest_cov:
+    type: bool
+    default: "{{ 'pytest-cov' in dev_deps }}"
+    when: false
+
 _min_copier_version: "9.0.0"
 _templates_suffix: .jinja
 _subdirectory: templates
@@ -103,9 +134,9 @@ _envops:
 _exclude:
     - "licenses"
     - "licenses/*"
-    - "{% if project_type == 'app' %}src{% endif %}"
-    - "{% if project_type != 'app' %}main.py{% endif %}"
-    - "{% if project_type != 'lib' %}src/{{module_name}}/py.typed{% endif %}"
+    - "{% if is_app %}src{% endif %}"
+    - "{% if not is_app %}main.py{% endif %}"
+    - "{% if not is_lib %}src/{{module_name}}/py.typed{% endif %}"
     - "{% if not include_license %}LICENSE{% endif %}"
     - "{% if not github_integration %}.github{% endif %}"
 
@@ -124,7 +155,7 @@ _tasks:
       when: "{{ _copier_operation in ['copy', 'update'] }}"
     - command: >-
         if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then mise run ci; fi
-      when: "{{ _copier_operation in ['copy', 'update'] and 'pytest' in dev_deps and 'ruff' in dev_deps }}"
+      when: "{{ _copier_operation in ['copy', 'update'] and with_pytest and with_ruff }}"
 
 _message_after_copy: |
     Your project "{{ project_name }}" was created and verified (`mise run install` + `mise run ci` passed).

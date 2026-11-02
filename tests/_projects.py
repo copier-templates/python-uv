@@ -103,6 +103,23 @@ VARIANTS: dict[str, dict[str, object]] = {
         "production_deps": [],
         "dev_deps": ["pytest", "pytest-cov", "ruff"],
     },
+    # Ruff without pytest: the only variant where the Ruff-gated sections
+    # render while every pytest-gated section is skipped, so the computed
+    # render-facts refactor cannot leak pytest tasks into a ruff-only render.
+    "ruff-only": {
+        "project_name": "ruff_only_proj",
+        "production_deps": [],
+        "dev_deps": ["ruff"],
+    },
+    # Pytest without pytest-cov: the mirror of "ruff-only" — the only variant
+    # where the pytest-gated sections render while every coverage-gated
+    # section is skipped, so the computed render-facts refactor cannot leak
+    # --cov addopts or [tool.coverage] into a coverage-less pytest render.
+    "pytest-no-cov": {
+        "project_name": "pytest_nocov_proj",
+        "production_deps": [],
+        "dev_deps": ["pytest"],
+    },
     # Python pinned to 3.13. Ruff is included in `dev_deps` so the rendered
     # `[tool.ruff] target-version` reflects the selected Python version
     # instead of being absent.

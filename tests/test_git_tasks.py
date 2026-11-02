@@ -240,11 +240,15 @@ def test_verify_tasks_cover_copy_and_update(
 
 @pytest.mark.parametrize("dep", ["pytest", "ruff"])
 def test_verify_ci_only_when_defined(copier_tasks: list[Any], copier_task_texts: list[str], dep: str):
-    """`mise run ci` exists only with pytest+ruff, so the task must be gated on both."""
+    """`mise run ci` exists only with pytest+ruff, so the guard must pin the computed-facts derivation (with_pytest/with_ruff)."""
     verifications = _task_indexes(copier_task_texts, "mise", "run", " ci")
     assert verifications, "copier.yaml must declare a `mise run ci` verify task"
     for i in verifications:
         when = _task_when(copier_tasks[i])
-        assert f"'{dep}' in dev_deps" in when, (
-            f"the `mise run ci` task must be gated on {dep} in dev_deps (ci is only rendered then), got when: {when!r}"
+        assert "with_pytest and with_ruff" in when, (
+            "the `mise run ci` task must be gated on the with_pytest and with_ruff computed facts "
+            f"(ci is only rendered when pytest AND ruff are present), got when: {when!r}"
+        )
+        assert f"with_{dep}" in when, (
+            f"the `mise run ci` task must reference the with_{dep} computed fact, got when: {when!r}"
         )
