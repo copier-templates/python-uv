@@ -67,6 +67,7 @@ License partials under `templates/licenses/` are Jinja includes excluded from co
 ├── examples/                    # Example data files (outside templates/, not copied)
 │   └── config-basic.yml         # Sample answers file
 ├── tests/                       # Test suite (outside templates/, not copied)
+│   ├── _projects.py             # Render pipeline and project registry
 │   ├── conftest.py
 │   ├── test_core_structure.py
 │   ├── test_exclusions.py
@@ -138,10 +139,13 @@ The template includes comprehensive tests in `tests/`:
 
 ### Test Fixtures
 
-Defined in `tests/conftest.py`:
+The render pipeline (template snapshot, `BASE_DATA`, `VARIANTS`,
+`ProjectRegistry`) lives in `tests/_projects.py`; `tests/conftest.py` hosts
+the `projects` registry fixture, the thin `generated_*` wrappers,
+`_git_template_repo`, and `LICENSE_TEST_CASES`:
 
-- **Session-scoped fixtures**: Generate test projects once per session, reused across tests
-- **Module-scoped wrappers**: Provide clean API with performance optimizations
+- **Session-scoped `projects` registry**: A `ProjectRegistry` renders each (variant, overrides) pair once per session, reused across tests
+- **Module-scoped `generated_*` wrappers**: Delegate to `projects.render(...)`; the render cache lives in the registry
 - **Read-only operations**: All tests are non-mutating to enable fixture reuse
 
 ## Variable Types
