@@ -16,6 +16,7 @@ from conftest import TEMPLATE_ROOT
 # generated project's `tests/` package. Local-only modules are guarded by LOCAL_ONLY_FILES.
 EXCLUDED_DIRS = [
     ".vscode",
+    ".agents",
     ".opencode",
     ".chlog",
     ".pytest_cache",
