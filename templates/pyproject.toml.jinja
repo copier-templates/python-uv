@@ -38,13 +38,13 @@ dependencies = [
 {%- endfor %}
 ]
 
-{%- if project_type == "package" %}
+{%- if is_package %}
 
 [project.scripts]
 {{project_name}} = "{{module_name}}:main"
 {%- endif %}
 
-{%- if project_type != "app" %}
+{%- if not is_app %}
 
 [build-system]
 requires = ["uv_build>=0.11.8,<0.12.0"]
@@ -58,10 +58,10 @@ dev = [
 {%- endfor %}
 ]
 
-{%- if "pytest" in dev_deps %}
+{%- if with_pytest %}
 
 [tool.pytest.ini_options]
-{%- if project_type != "app" %}
+{%- if not is_app %}
 pythonpath = ["src"]
 {%- else %}
 pythonpath = ["."]
@@ -76,22 +76,22 @@ addopts = [
     "--durations=5",
     "--durations-min=0.0",
     "--tb=short",
-{%- if "pytest-cov" in dev_deps %}
-    "--cov={% if project_type == 'app' %}main{% else %}{{module_name}}{% endif %}",
+{%- if with_pytest_cov %}
+    "--cov={% if is_app %}main{% else %}{{module_name}}{% endif %}",
     "--cov-report=html",
     "--cov-report=term-missing",
 {%- endif %}
 ]
 {%- endif %}
 
-{%- if "pytest-cov" in dev_deps %}
+{%- if with_pytest_cov %}
 
 [tool.coverage.run]
 branch = true
 omit = ["*/tests/*"]
 parallel = true
 relative_files = true
-{%- if project_type == "app" %}
+{%- if is_app %}
 source = ["."]
 {%- else %}
 source_pkgs = ["{{module_name}}"]
@@ -115,7 +115,7 @@ exclude_also = [
 ]
 {%- endif %}
 
-{%- if "ruff" in dev_deps %}
+{%- if with_ruff %}
 
 [tool.ruff]
 line-length = 120

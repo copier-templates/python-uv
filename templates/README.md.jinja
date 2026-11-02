@@ -17,9 +17,9 @@ mise run install
 
 Run the project:
 ```bash
-{% if project_type == "app" %}
+{% if is_app %}
 uv run python main.py
-{% elif project_type == "package" %}
+{% elif is_package %}
 uv run {{project_name}}
 {% else %}
 uv run python -c "from {{module_name}} import hello; print(hello())"
@@ -28,13 +28,13 @@ uv run python -c "from {{module_name}} import hello; print(hello())"
 
 ## Development
 
-{% if "pytest" in dev_deps %}
+{% if with_pytest %}
 ### Running Tests
 ```bash
 mise run test
 ```
 {% endif %}
-{% if "ruff" in dev_deps %}
+{% if with_ruff %}
 ### Code Quality
 ```bash
 mise run lint
@@ -62,12 +62,12 @@ mise run release -- --version 0.2.0 --yes
 
 ## Project Structure
 ```
-{% if project_type == "app" %}
+{% if is_app %}
 main.py                    # Root application entrypoint
 {% else %}
 src/{{module_name}}/       # Main package
 {% endif %}
-{%- if "pytest" in dev_deps %}
+{%- if with_pytest %}
 tests/unit/              # Unit tests
 {%- endif %}
 ```
