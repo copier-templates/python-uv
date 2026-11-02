@@ -6,6 +6,9 @@ from pathlib import Path
 
 import tomllib
 from _mise_contract import read_mise_toml, refs, run_steps
+from conftest import TEMPLATE_ROOT
+
+ROOT_TOOLS = read_mise_toml(TEMPLATE_ROOT / "mise.toml")["tools"]
 
 
 def test_readme_includes_tests_section_when_pytest(generated_basic: Path):
@@ -196,16 +199,16 @@ def test_mise_toml_uses_modern_bash(generated_with_ruff: Path):
 def test_mise_toml_pins_prek_tool(generated_basic: Path):
     """Generated mise.toml must pin prek so hooks run from mise."""
     data = read_mise_toml(generated_basic / "mise.toml")
-    assert data["tools"]["prek"] == "0.5.6"
+    assert data["tools"]["prek"] == ROOT_TOOLS["prek"]
 
 
 def test_mise_toml_pins_local_cicd_tools(generated_with_ruff: Path):
     """Generated mise.toml must pin act/actionlint/git-cliff for local CI/CD."""
     data = read_mise_toml(generated_with_ruff / "mise.toml")
-    assert data["tools"]["act"] == "0.2"
-    assert data["tools"]["actionlint"] == "1.7"
-    assert data["tools"]["git-cliff"] == "2.14.2"
-    assert data["tools"]["gum"] == "2.0.2"
+    assert data["tools"]["act"] == ROOT_TOOLS["act"]
+    assert data["tools"]["actionlint"] == ROOT_TOOLS["actionlint"]
+    assert data["tools"]["git-cliff"] == ROOT_TOOLS["git-cliff"]
+    assert data["tools"]["gum"] == ROOT_TOOLS["gum"]
 
 
 def test_mise_toml_agent_entrypoints(generated_with_ruff: Path):

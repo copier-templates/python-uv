@@ -9,6 +9,8 @@ from pathlib import Path
 import tomllib
 from conftest import TEMPLATE_ROOT
 
+ROOT_TOOLS = tomllib.loads((TEMPLATE_ROOT / "mise.toml").read_text())["tools"]
+
 
 def _root_script() -> Path:
     return TEMPLATE_ROOT / "scripts" / "release.sh"
@@ -54,11 +56,27 @@ def test_release_script_rejects_unknown_flags():
     assert proc.returncode == 2
 
 
+def test_act_image_reference_is_canonical():
+    """All ACT-image references must use the same registryless image."""
+    canonical = 'ACT_IMAGE="catthehacker/ubuntu:act-24.04"'
+    scripts = (
+        TEMPLATE_ROOT / "scripts" / "workflows" / "prek.sh",
+        TEMPLATE_ROOT / "scripts" / "workflows" / "test.sh",
+        TEMPLATE_ROOT / "scripts" / "test-workflow.sh",
+    )
+    for script in scripts:
+        assert script.is_file(), f"Missing script: {script}"
+        content = script.read_text()
+        if "ACT_IMAGE=" in content:
+            assert canonical in content, f"Non-canonical ACT_IMAGE in {script}"
+        assert "ghcr.io" not in content, f"ghcr.io reference in {script}"
+
+
 def test_rendered_mise_has_release_task_and_gum(generated_basic: Path, generated_with_ruff: Path):
     """Both mise.toml variants must pin gum and expose the release task."""
     for project in (generated_basic, generated_with_ruff):
         data = tomllib.loads((project / "mise.toml").read_text())
-        assert data["tools"]["gum"] == "2.0.2"
+        assert data["tools"]["gum"] == ROOT_TOOLS["gum"]
         assert "release" in data["tasks"]
         assert "release.sh" in data["tasks"]["release"]["run"]
 
