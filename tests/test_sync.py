@@ -14,6 +14,7 @@ import difflib
 import re
 
 import tomllib
+from _mise_contract import template_task_names
 from conftest import TEMPLATE_ROOT
 
 
@@ -57,9 +58,6 @@ def test_workflow_files_stay_in_sync():
         _assert_bytes_equal(f".github/workflows/{name}", f"templates/.github/workflows/{name}")
 
 
-TASK_HEADER = re.compile(r'^\[tasks\.(?:"([^"]+)"|([^\]]+))\]')
-
-
 def test_mise_task_contract_parity():
     """Every task name in the documented contract must exist in root and template mise.toml."""
     standards_doc = (TEMPLATE_ROOT / "CODING_STANDARDS.md").read_text()
@@ -71,11 +69,7 @@ def test_mise_task_contract_parity():
     root_tasks = set(tomllib.loads((TEMPLATE_ROOT / "mise.toml").read_text())["tasks"])
 
     template_text = (TEMPLATE_ROOT / "templates" / "mise.toml.jinja").read_text()
-    template_tasks = set()
-    for line in template_text.splitlines():
-        header = TASK_HEADER.match(line)
-        if header:
-            template_tasks.add(header.group(1) or header.group(2))
+    template_tasks = template_task_names(template_text)
 
     missing_root = sorted(contract - root_tasks)
     missing_template = sorted(contract - template_tasks)
