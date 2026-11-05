@@ -13,7 +13,13 @@ import difflib
 import pytest
 from _projects import TEMPLATE_ROOT, ProjectRegistry, load_toml, mise_toml
 
-SYMLINKED_ROOT_PATHS = ["prek.toml", "cliff.toml", ".editorconfig", "scripts/release.sh"]
+SYMLINKED_ROOT_PATHS = [
+    "prek.toml",
+    "cliff.toml",
+    ".editorconfig",
+    "scripts/release.sh",
+    "scripts/check-version-tag.sh",
+]
 
 # Task names shared by root `mise.toml` and every full-tooling generated project.
 TASK_CONTRACT = frozenset(
