@@ -48,13 +48,10 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--durations=5 --durations-min=0.0 --tb=short"
+pythonpath = ["scripts", "tasks"]
+addopts = "--durations=5 --durations-min=0.0 --tb=short --strict-markers"
 filterwarnings = [
     "ignore:Dirty template changes included automatically:copier._vcs.DirtyLocalWarning",
-]
-markers = [
-    "unit: marks tests as unit tests",
-    "integration: marks tests as integration tests",
 ]
 
 [tool.ruff]

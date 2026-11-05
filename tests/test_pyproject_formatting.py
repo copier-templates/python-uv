@@ -5,6 +5,9 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import pytest
+from _projects import ProjectRegistry
+
 # A new top-level section starts a TOML table header or one of the bare keys
 # that follow conditional content inside [project]. Each must be preceded by
 # a blank line (except at the start of file). Intra-table keys, array items,
@@ -21,22 +24,10 @@ def _assert_section_separation(path: Path) -> None:
             )
 
 
-def test_pyproject_sections_separated_by_blank_lines(
-    generated_basic: Path,
-    generated_with_ruff: Path,
-    generated_app: Path,
-    generated_library: Path,
-    generated_with_license: Path,
-):
+@pytest.mark.parametrize("variant", ["basic", "ruff", "app", "lib", "license"])
+def test_pyproject_sections_separated_by_blank_lines(projects: ProjectRegistry, variant: str):
     """Every rendered variant (package/app/lib, with/without ruff/license)
     must separate top-level sections with at least one blank line, no matter
-    which conditional blocks were skipped. Session-scoped fixtures: no extra
-    Copier renders."""
-    for project in (
-        generated_basic,
-        generated_with_ruff,
-        generated_app,
-        generated_library,
-        generated_with_license,
-    ):
-        _assert_section_separation(project / "pyproject.toml")
+    which conditional blocks were skipped. Registry renders are cached: no
+    extra Copier renders."""
+    _assert_section_separation(projects.render(variant) / "pyproject.toml")
