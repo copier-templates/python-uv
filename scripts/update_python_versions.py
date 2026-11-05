@@ -21,6 +21,7 @@ BEGIN_MARKER = "# python-version-choices: begin (managed by scripts/update_pytho
 END_MARKER = "# python-version-choices: end"
 DEFAULT_TARGET = "copier.yaml"
 TIMEOUT_SECONDS = 30
+INDENT = " " * 8  # indentation of `choices:` entries and their markers in copier.yaml
 
 CYCLE_PATTERN = re.compile(r"^3\.(\d+)$")
 DEFAULT_LINE_PATTERN = re.compile(r"^\s*default:")
@@ -35,8 +36,6 @@ def parse_releases(records: list[dict[str, Any]]) -> list[str]:
     """
     minors: set[int] = set()
     for record in records:
-        if not isinstance(record, dict):
-            continue
         cycle = record.get("cycle")
         if not isinstance(cycle, str) or not record.get("latest"):
             continue
@@ -50,13 +49,12 @@ def parse_releases(records: list[dict[str, Any]]) -> list[str]:
     return [f"3.{minor}" for minor in sorted(minors, reverse=True)]
 
 
-def format_choice_lines(versions: list[str]) -> list[str]:
-    """Render each version as an 8-space-indented, quoted Copier choice entry."""
-    return [f'        "{version}": "{version}"' for version in versions]
-
-
-def _indent_of(line: str) -> str:
-    return line[: len(line) - len(line.lstrip())]
+def _marker_index(lines: list[str], marker: str) -> int:
+    """Index of the one line holding `marker`; ValueError when it is missing or duplicated."""
+    found = [index for index, line in enumerate(lines) if line.strip() == marker]
+    if len(found) != 1:
+        raise ValueError(f"expected exactly one {marker!r} marker, found {len(found)}")
+    return found[0]
 
 
 def update_copier_yaml(content: str, versions: list[str]) -> str:
@@ -70,20 +68,14 @@ def update_copier_yaml(content: str, versions: list[str]) -> str:
         raise ValueError("refusing to write an empty python_version choice list")
 
     lines = content.splitlines(keepends=True)
-    begins = [index for index, line in enumerate(lines) if line.strip() == BEGIN_MARKER]
-    ends = [index for index, line in enumerate(lines) if line.strip() == END_MARKER]
-    if len(begins) != 1 or len(ends) != 1:
-        raise ValueError(
-            f"expected exactly one begin and one end marker, found {len(begins)} begin and {len(ends)} end"
-        )
-    begin, end = begins[0], ends[0]
+    begin, end = _marker_index(lines, BEGIN_MARKER), _marker_index(lines, END_MARKER)
     if begin > end:
         raise ValueError("the begin marker must precede the end marker")
 
     block = [
-        f"{_indent_of(lines[begin])}{BEGIN_MARKER}\n",
-        *(f"{choice}\n" for choice in format_choice_lines(versions)),
-        f"{_indent_of(lines[end])}{END_MARKER}\n",
+        f"{INDENT}{BEGIN_MARKER}\n",
+        *(f'{INDENT}"{version}": "{version}"\n' for version in versions),
+        f"{INDENT}{END_MARKER}\n",
     ]
     return "".join([*lines[:begin], *block, *lines[end + 1 :]])
 
@@ -95,11 +87,7 @@ def current_default_version(content: str) -> str:
     line follows it, or when that line is not a quoted `X.Y` version.
     """
     lines = content.splitlines()
-    ends = [index for index, line in enumerate(lines) if line.strip() == END_MARKER]
-    if len(ends) != 1:
-        raise ValueError(f"expected exactly one end marker, found {len(ends)}")
-
-    for line in lines[ends[0] + 1 :]:
+    for line in lines[_marker_index(lines, END_MARKER) + 1 :]:
         if DEFAULT_LINE_PATTERN.match(line):
             match = DEFAULT_VALUE_PATTERN.match(line)
             if match is None:
