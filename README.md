@@ -1,7 +1,7 @@
 <div align="center">
 
 [![tests](https://github.com/patryk-gpl/copier-python-uv/actions/workflows/test.yml/badge.svg)](https://github.com/patryk-gpl/copier-python-uv/actions)
-[![python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
+[![python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/)
 [![uv](https://img.shields.io/badge/uv-enabled-blue)](https://docs.astral.sh/uv/)
 [![ruff](https://img.shields.io/badge/ruff-enabled-black)](https://docs.astral.sh/ruff/)
 [![copier](https://img.shields.io/badge/copier-template-orange)](https://copier.readthedocs.io/)
@@ -22,7 +22,7 @@ This template provides a standardized Python project structure with sensible def
 ## 📋 Prerequisites
 
 The following tools must be installed:
-- Python 3.11 or newer
+- Python 3.12 or newer
 - uv or pipx (if you want to install Copier in an isolated environment, accessible everywhere)
 - copier
 
@@ -45,7 +45,7 @@ The following tools must be installed:
    ```
    Replace `/path/to/copier-template` with the path to this template, and `/path/to/your-repo` with your target repository.
 
-   **Python version:** the template asks which Python version the project targets (`python_version`, default `3.11`, choices are released CPython 3.11+ versions). The answer pins `mise.toml`, `requires-python`, and Ruff's `target-version`. Maintainers refresh the choices from endoflife.date with `mise run update:python-versions`.
+   **Python version:** the template asks which Python version the project targets (`python_version`, default `3.12`, choices are released CPython 3.12+ versions). The answer pins `mise.toml`, `requires-python`, and Ruff's `target-version`. Maintainers refresh the choices from endoflife.date with `mise run update:python-versions`.
 
    **Note:** If you're testing with unreleased template changes, use `--vcs-ref=HEAD`:
    ```bash

@@ -48,7 +48,7 @@ We regularly update dependencies to address known vulnerabilities. Dependencies 
 
 When using this project template:
 
-- **Keep Python Updated**: Use a supported Python version (3.11+)
+- **Keep Python Updated**: Use a supported Python version (3.12+)
 - **Update Dependencies**: Regularly run `uv sync` to get the latest security patches
 - **Review Generated Code**: Always review code generated from templates for your use case
 - **Secrets Management**: Never commit API keys, tokens, or other secrets to the repository

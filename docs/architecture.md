@@ -19,8 +19,8 @@ The main template configuration file that defines:
 
 `python_version` is a `str` question declared directly after `project_type` and before `module_name`.
 
-- **Default**: `3.11` (the minimum supported Python).
-- **Choices**: released CPython 3.x cycles at or above 3.11, newest first. They live in a marker block delimited by `# python-version-choices: begin (managed by scripts/update_python_versions.py, do not edit)` and `# python-version-choices: end`.
+- **Default**: `3.12` (the minimum supported Python).
+- **Choices**: released CPython 3.x cycles at or above 3.12, newest first. They live in a marker block delimited by `# python-version-choices: begin (managed by scripts/update_python_versions.py, do not edit)` and `# python-version-choices: end`.
 - **Maintenance**: `scripts/update_python_versions.py` (run via `mise run update:python-versions`) fetches <https://endoflife.date/api/python.json> and rewrites only the lines between the markers. Never hand-edit between the markers; the script refuses to write when a marker is missing or duplicated, and it is idempotent.
 - **Consumers**:
   - `_tasks` runs `uv python install <version>` before `uv sync`.

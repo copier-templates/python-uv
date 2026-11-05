@@ -1,6 +1,8 @@
 [tools]
+{%- if github_integration %}
 act = "0.2"
 actionlint = "1.7"
+{%- endif %}
 git-cliff = "2.14.2"
 gum = "2.0.2"
 python = "{{ python_version }}"
@@ -42,13 +44,18 @@ shellcheck -x "${files[@]}"
 description = "Lint Python with Ruff (check-only)"
 run = "uv run ruff check ."
 
+[tasks."lint:types"]
+description = "Type-check Python with ty"
+run = "uv run ty check"
+
 [tasks."fix:python"]
 description = "Lint Python with Ruff and autofix"
 run = "uv run ruff check --fix ."
 
 [tasks.lint]
-description = "Run all linters (Python + shell + workflows)"
-depends = ["lint:python", "lint:shell", "lint:workflows"]
+description = "Run all linters"
+depends = ["lint:python", "lint:types", "lint:shell"{% if github_integration %}, "lint:workflows"{% endif %}]
+{%- if github_integration %}
 
 [tasks."lint:workflows"]
 description = "Lint GitHub Actions workflows with actionlint"
@@ -62,6 +69,7 @@ else
   printf 'No workflows found, skipping.\n'
 fi
 """
+{%- endif %}
 
 [tasks.format]
 description = "Format code"
@@ -119,10 +127,12 @@ run = ["mise ls", "mise doctor", "uv --version", "prek --version"]
 [tasks.bootstrap]
 description = "First-run setup for humans and agents (trust + install + doctor)"
 run = ["mise trust", { task = "install" }, { task = "doctor" }]
+{%- if github_integration %}
 
 [tasks."ci:docker"]
 description = "Run GitHub test job locally in Docker (requires Docker)"
 run = "act push -j test --container-architecture linux/amd64"
+{%- endif %}
 
 [tasks.changelog]
 description = "Preview changelog"

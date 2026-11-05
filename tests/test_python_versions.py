@@ -9,13 +9,13 @@ from update_python_versions import BEGIN_MARKER, END_MARKER, update_copier_yaml
 
 
 def test_python_version_choices_are_released_quoted_versions():
-    """Choices are `"3.x": "3.x"` string pairs at or above 3.11, and the default is one of them."""
+    """Choices are `"3.x": "3.x"` string pairs at or above 3.12, and the default is one of them."""
     question = copier_config()["python_version"]
     choices = question["choices"]
 
     assert all(key == value for key, value in choices.items()), f"choice keys must equal their values: {choices!r}"
     assert all(isinstance(v, str) and re.fullmatch(r"3\.(\d+)", v) for v in choices.values()), choices
-    assert all(int(v.split(".")[1]) >= 11 for v in choices.values()), f"choices must be >= 3.11: {choices!r}"
+    assert all(int(v.split(".")[1]) >= 12 for v in choices.values()), f"choices must be >= 3.12: {choices!r}"
     assert question["default"] in choices
 
 

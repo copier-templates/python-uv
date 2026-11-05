@@ -8,11 +8,11 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import tomllib
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-import tomllib
 import yaml
 from copier import run_copy
 from plumbum import local
@@ -158,7 +158,7 @@ def run_copy_from(
     # Resolve the destination: on macOS temp dirs may be spelled `/var/...` while
     # git reports `/private/var/...`, which breaks Copier's `update` path math.
     dst = dst.resolve()
-    extra: dict[str, object] = {"vcs_ref": vcs_ref} if vcs_ref is not None else {}
+    extra: dict[str, Any] = {"vcs_ref": vcs_ref} if vcs_ref is not None else {}
     with local.env(**GIT_IDENTITY):
         run_copy(
             str(source),
