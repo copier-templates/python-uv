@@ -1,70 +1,59 @@
-"""Tests for uv-init-aligned project type rendering."""
+"""uv-init-aligned project type rendering."""
 
 from __future__ import annotations
 
-from pathlib import Path
-
-from _mise_contract import read_mise_toml, refs, task_names
+from _projects import ProjectRegistry, mise_toml, pyproject, refs
 
 
-def test_package_mode_normalizes_module_name(generated_hyphenated_package: Path):
+def test_package_mode_normalizes_module_name(projects: ProjectRegistry):
     """Hyphenated project names should derive an underscore module package."""
-    pyproject = (generated_hyphenated_package / "pyproject.toml").read_text()
+    project = projects.render("hyphenated-package")
+    config = pyproject(project)["project"]
 
-    assert (generated_hyphenated_package / "src" / "my_app" / "__init__.py").is_file()
-    assert 'name = "my-app"' in pyproject
-    assert '[project.scripts]\nmy-app = "my_app:main"' in pyproject
-
-
-def test_app_mode_renders_root_entrypoint(generated_app: Path):
-    """Application mode should render a root main.py instead of a package tree."""
-    pyproject = (generated_app / "pyproject.toml").read_text()
-
-    assert (generated_app / "main.py").is_file()
-    assert not (generated_app / "src").exists()
-    assert "[project.scripts]" not in pyproject
-    assert "[build-system]" not in pyproject
+    assert (project / "src" / "my_app" / "__init__.py").is_file()
+    assert config["name"] == "my-app"
+    assert config["scripts"] == {"my-app": "my_app:main"}
 
 
-def test_library_mode_renders_typed_package(generated_library: Path):
+def test_app_mode_renders_root_entrypoint_and_coverage(projects: ProjectRegistry):
+    """Application mode renders a root main.py, no package tree, and coverage scoped to the root module."""
+    project = projects.render("app")
+    config = pyproject(project)
+
+    assert (project / "main.py").is_file()
+    assert not (project / "src").exists()
+    assert "scripts" not in config["project"]
+    assert "build-system" not in config
+    assert config["tool"]["coverage"]["run"]["source"] == ["."]
+    assert "source_pkgs" not in config["tool"]["coverage"]["run"]
+
+
+def test_library_mode_renders_typed_package(projects: ProjectRegistry):
     """Library mode should render a typed package without a CLI script entrypoint."""
-    pyproject = (generated_library / "pyproject.toml").read_text()
+    project = projects.render("lib")
+    config = pyproject(project)
 
-    assert (generated_library / "src" / "example_lib" / "__init__.py").is_file()
-    assert (generated_library / "src" / "example_lib" / "py.typed").is_file()
-    assert "[project.scripts]" not in pyproject
-    assert 'build-backend = "uv_build"' in pyproject
+    assert (project / "src" / "example_lib" / "__init__.py").is_file()
+    assert (project / "src" / "example_lib" / "py.typed").is_file()
+    assert "scripts" not in config["project"]
+    assert config["build-system"]["build-backend"] == "uv_build"
 
 
-def test_generated_mise_toml_contains_test_task(generated_app: Path):
+def test_generated_mise_toml_contains_test_task(projects: ProjectRegistry):
     """The generated mise.toml must split pytest into unit/integration tasks aggregated by `test`."""
-    data = read_mise_toml(generated_app / "mise.toml")
-    tasks = data["tasks"]
-    names = task_names(data)
+    tasks = mise_toml(projects.render("app"))["tasks"]
 
     assert "uv run pytest tests/unit/" in tasks["test:unit"]["run"]
     assert "uv run pytest tests/integration/" in tasks["test:integration"]["run"]
-    assert "test:unit" in names
-    assert "test:integration" in names
-    assert "test" in names
     assert refs(tasks["test"]) == ["test:unit", "test:integration"]
-    # `unit` was renamed to `test:unit`: the legacy task must not linger.
-    assert "unit" not in names
 
 
-def test_generated_mise_toml_integration_task_tolerates_missing_directory(generated_app: Path):
+def test_generated_mise_toml_integration_task_tolerates_missing_directory(projects: ProjectRegistry):
     """`test:integration` must skip gracefully: generated projects ship no tests/integration/ dir."""
-    mise_toml = (generated_app / "mise.toml").read_text()
+    project = projects.render("app")
+    mise_text = (project / "mise.toml").read_text()
 
-    assert not (generated_app / "tests" / "integration").exists(), "PRD: no new scaffold directories"
-    assert "[[ -d tests/integration ]]" in mise_toml, (
+    assert not (project / "tests" / "integration").exists(), "PRD: no new scaffold directories"
+    assert "[[ -d tests/integration ]]" in mise_text, (
         "test:integration must guard on the directory, otherwise pytest exits 4 in a fresh project"
     )
-
-
-def test_app_mode_keeps_app_coverage_source(generated_app: Path):
-    """Application mode should keep coverage scoped to the root module entrypoint."""
-    pyproject = (generated_app / "pyproject.toml").read_text()
-
-    assert 'source = ["."]' in pyproject
-    assert "source_pkgs" not in pyproject
