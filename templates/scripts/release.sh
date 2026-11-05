@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Cut a release: bump [project] version, re-lock, regenerate CHANGELOG.md,
-# commit, and tag. Never pushes. Interactive via gum on a TTY, flag-driven
-# otherwise (CI-safe).
+# commit, and tag. Never pushes. Shows local vs origin tags before prompting.
+# Interactive via gum on a TTY, flag-driven otherwise (CI-safe).
 #
 #   scripts/release.sh [--version X.Y.Z] [--yes]
 #   scripts/release.sh --help
@@ -159,6 +159,24 @@ EOF
     : # first release reuses the pyproject version below; tag check happens later
   fi
 
+  # Remote latest tag (best-effort; stays quiet offline). Shown alongside the
+  # local tag so the release version is chosen against both. Never push from
+  # here; the push gate (check-version-tag) catches a forgotten --follow-tags.
+  local remote_tag="" remote_refs="" escaped_version=""
+  if remote_refs="$(git ls-remote --tags origin 2>/dev/null)"; then
+    remote_tag="$(printf '%s\n' "$remote_refs" \
+      | grep -E --color=never 'refs/tags/[0-9]+\.[0-9]+\.[0-9]+$' \
+      | sed -E 's#.*refs/tags/##' \
+      | python -c 'import sys; ls=[l.strip() for l in sys.stdin if l.strip()]; print(sorted((tuple(map(int, v.split(".")), v) for v in ls))[-1][1] if ls else "")' || true)"
+  fi
+  if [[ -n $remote_tag && -n $last_tag ]]; then
+    log_info "Latest tags: local ${last_tag}, remote ${remote_tag}."
+  elif [[ -n $remote_tag ]]; then
+    log_info "Latest tags: local none, remote ${remote_tag}."
+  elif [[ -n $last_tag ]]; then
+    log_info "Latest local tag: ${last_tag} (origin unreachable or no remote tags)."
+  fi
+
   # 3. Determine the version to release.
   local suggested explicit=0
   if (( has_tags )); then
@@ -186,19 +204,29 @@ EOF
   if git rev-parse --verify --quiet "refs/tags/${VERSION}" >/dev/null; then
     die "Tag '${VERSION}' already exists."
   fi
-  # Never go backwards: above the highest of pyproject version / latest tag.
+  # Never move a published tag: abort when the version tag exists on origin.
+  escaped_version="${VERSION//./\\.}"
+  if git ls-remote --tags origin 2>/dev/null | grep -Eq --color=never "refs/tags/${escaped_version}(\\^\\{\\})?$"; then
+    die "Tag '${VERSION}' already exists on origin. Never move a published tag; pick a new version."
+  fi
+  # Never go backwards: above the highest of pyproject version / latest local
+  # tag / latest remote tag.
   # Exception: a first release (no tags) may equal the pyproject version.
-  if ! python - "$VERSION" "$current_version" "$last_tag" <<'EOF' >/dev/null 2>&1
+  if ! python - "$VERSION" "$current_version" "$last_tag" "$remote_tag" <<'EOF' >/dev/null 2>&1
 import sys
 def key(v):
     return tuple(int(p) for p in v.split("."))
-ver, cur, last = sys.argv[1], sys.argv[2], sys.argv[3]
-floor = max(key(cur), key(last)) if last else key(cur)
-ok = (key(ver) >= floor) if not last else (key(ver) > floor)
+ver, cur, last, remote = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+known = [v for v in (cur, last, remote) if v]
+floor = max(key(v) for v in known)
+if last or remote:
+    ok = key(ver) > floor
+else:
+    ok = key(ver) >= floor
 sys.exit(0 if ok else 1)
 EOF
   then
-    die "Version ${VERSION} must be above pyproject (${current_version})${last_tag:+ and tag ${last_tag}}."
+    die "Version ${VERSION} must be above pyproject (${current_version})${last_tag:+ and tag ${last_tag}}${remote_tag:+ and remote tag ${remote_tag}}."
   fi
 
   log_info "Releasing ${VERSION} (pyproject was ${current_version})."

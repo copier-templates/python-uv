@@ -1,0 +1,1 @@
+../templates/scripts/check-version-tag.sh

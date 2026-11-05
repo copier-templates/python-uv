@@ -111,12 +111,12 @@ run = "prek update"
 [tasks.ci]
 description = "Run CI checks (ordered)"
 env = { CI = "true" }
-run = [{ task = "lint" }, { task = "format:check" }, { task = "hooks" }, { task = "test:unit" }]
+run = [{ task = "lint" }, { task = "format:check" }, { task = "hooks" }, { task = "test:unit" }, { task = "check:version-tag" }]
 
 [tasks."ci:full"]
 description = "Full local gate, mirrors GitHub Actions"
 env = { CI = "true" }
-run = [{ task = "lint" }, { task = "format:check" }, { task = "hooks" }, { task = "test" }]
+run = [{ task = "lint" }, { task = "format:check" }, { task = "hooks" }, { task = "test" }, { task = "check:version-tag" }]
 
 [tasks.doctor]
 description = "Diagnose toolchain"
@@ -133,6 +133,10 @@ run = "act push -j test --container-architecture linux/amd64"
 [tasks.changelog]
 description = "Preview changelog"
 run = "git-cliff -l --strip all"
+
+[tasks."check:version-tag"]
+description = "Block push when pyproject version differs from latest tag"
+run = "./scripts/check-version-tag.sh"
 
 [tasks.release]
 description = "Cut a release: bump version, changelog, commit, tag (no push)"
