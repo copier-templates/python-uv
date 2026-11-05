@@ -4,6 +4,10 @@
 
 minimum_prek_version = "0.5.6"
 
+# Hold new hook revs back for a week so `prek update` never adopts a freshly published tag.
+[update]
+cooldown_days = 7
+
 # Lower tiers run first. Each file-mutating fixer gets its own tier so writers never race
 # on the same file; read-only checks share one tier and run concurrently after all fixers.
 [priorities]
