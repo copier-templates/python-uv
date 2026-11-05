@@ -2,74 +2,61 @@
 # See https://prek.j178.dev for more information.
 #:schema https://www.schemastore.org/prek.json
 
-minimum_pre_commit_version = "4.0.0"
+minimum_prek_version = "0.5.6"
+
+# Lower tiers run first. Each file-mutating fixer gets its own tier so writers never race
+# on the same file; read-only checks share one tier and run concurrently after all fixers.
+[priorities]
+fix-eof = 0
+fix-bom = 1
+fix-line-endings = 2
+fix-whitespace = 3
+fix-ruff-check = 4
+fix-ruff-format = 5
+checks = 10
 
 [[repos]]
 repo = "https://github.com/jumanjihouse/pre-commit-hooks"
 rev = "3.0.0"
 hooks = [
-  { id = "forbid-binary" },
-  { id = "script-must-have-extension" },
-  { id = "shellcheck" }
+  { id = "forbid-binary", priority = "checks" },
+  { id = "script-must-have-extension", priority = "checks" },
+  { id = "shellcheck", priority = "checks" }
 ]
 
 [[repos]]
-repo = "https://github.com/pre-commit/pre-commit-hooks"
-rev = "v6.0.0"
+repo = "builtin"
 hooks = [
-  { id = "check-added-large-files" },
-  { id = "check-executables-have-shebangs" },
-  { id = "check-merge-conflict" },
-  { id = "check-toml" },
-  {
-    id = "check-yaml",
-    args = ["--allow-multiple-documents"]
-  },
-  { id = "detect-private-key" },
-  { id = "end-of-file-fixer" },
-  { id = "fix-byte-order-marker" },
-  { id = "mixed-line-ending" },
-  {
-    id = "trailing-whitespace",
-    args = ["--markdown-linebreak-ext=md"]
-  }
+  { id = "check-added-large-files", priority = "checks" },
+  { id = "check-executables-have-shebangs", priority = "checks" },
+  { id = "check-merge-conflict", priority = "checks" },
+  { id = "check-toml", priority = "checks" },
+  { id = "check-yaml", priority = "checks", args = ["--allow-multiple-documents"] },
+  { id = "detect-private-key", priority = "checks" },
+  { id = "end-of-file-fixer", priority = "fix-eof" },
+  { id = "fix-byte-order-marker", priority = "fix-bom" },
+  { id = "mixed-line-ending", priority = "fix-line-endings" },
+  { id = "trailing-whitespace", priority = "fix-whitespace", args = ["--markdown-linebreak-ext=md"] }
 ]
 
 [[repos]]
 repo = "https://github.com/gitleaks/gitleaks"
 rev = "v8.30.1"
 hooks = [
-  { id = "gitleaks" },
+  { id = "gitleaks", priority = "checks" },
 ]
 
 [[repos]]
 repo = "https://github.com/astral-sh/ruff-pre-commit"
 rev = "v0.17.2"
 hooks = [
-  {
-    id = "ruff-check",
-    types_or = [
-      "python",
-      "pyi"
-    ],
-    args = ["--fix"]
-  },
-  {
-    id = "ruff-format",
-    types_or = [
-      "python",
-      "pyi"
-    ]
-  }
+  { id = "ruff-check", priority = "fix-ruff-check", types_or = ["python", "pyi"], args = ["--fix"] },
+  { id = "ruff-format", priority = "fix-ruff-format", types_or = ["python", "pyi"] }
 ]
 
 [[repos]]
 repo = "https://github.com/compilerla/conventional-pre-commit"
 rev = "v4.4.0"
 hooks = [
-  {
-    id = "conventional-pre-commit",
-    stages = ["commit-msg"],
-    args = ["--verbose"]
-  }
+  { id = "conventional-pre-commit", priority = "checks", stages = ["commit-msg"], args = ["--verbose"] }
 ]

@@ -104,6 +104,10 @@ depends = ["test:unit", "test:integration"]
 description = "Run all prek hooks"
 run = "prek run --all-files --show-diff-on-failure"
 
+[tasks."hooks:update"]
+description = "Update pinned prek hook revs (honors update.cooldown_days)"
+run = "prek update"
+
 [tasks.ci]
 description = "Run CI checks (ordered)"
 env = { CI = "true" }
