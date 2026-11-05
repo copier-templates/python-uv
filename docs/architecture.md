@@ -35,28 +35,25 @@ Hidden questions (`when: false`) derive render facts from the answers instead of
 | Fact | Derived from |
 |------|--------------|
 | `is_app`, `is_lib`, `is_package` | `project_type` |
-| `dev_dep_names` | `dev_deps`, normalised to PEP 503 names (extras, specifiers and markers stripped) |
-| `with_ruff`, `with_pytest`, `with_pytest_cov` | membership in `dev_dep_names` |
-| `verify_ci` | `with_pytest and with_ruff`; gates the post-copy `mise run ci` |
 | `license_spdx` | `license_type`, mapped to an SPDX identifier |
 
 - **Declaration**: `copier.yaml` keys with a Jinja `default` and `when: false`. Copier omits `when: false` questions from `.copier-answers.yml`, so facts are re-derived on every render and `copier update` never replays a stale value. `tests/test_render_variants.py` pins this.
 - **Ordering**: Each fact is declared after the answers it reads. `_envops.undefined` is `jinja2.StrictUndefined`, so an earlier default would fail to render.
 - **Naming**: `_`-prefixed keys are reserved for Copier settings, so facts use plain names.
-- **Consumers**: `_exclude` (`is_app`, `is_lib`, `include_license`, `github_integration`), `_tasks` (`verify_ci`), and the templates `pyproject.toml.jinja`, `mise.toml.jinja`, `README.md.jinja`, `src/{{module_name}}/__init__.py.jinja` and `tests/unit/test_init.py.jinja`.
+- **Consumers**: `_exclude` (`is_app`, `is_lib`, `include_license`, `github_integration`), and the templates `pyproject.toml.jinja`, `mise.toml.jinja`, `README.md.jinja`, `src/{{module_name}}/__init__.py.jinja` and `tests/unit/test_init.py.jinja`.
 
 The `module_name` question uses the same mechanism: `type: str`, a Jinja `default`, and `when: false`.
 
 ### Post-copy Lifecycle
 
-`_tasks` in `copier.yaml` runs, in order: `uv python install <python_version>`, `uv sync`, `mise trust`, then `tasks/lifecycle.py {copy|update} --verify-ci=<verify_ci>` (copy and update only).
+`_tasks` in `copier.yaml` runs, in order: `uv python install <python_version>`, `uv sync`, `mise trust`, then `tasks/lifecycle.py {copy|update}` (copy and update only).
 
 `tasks/lifecycle.py` is a stdlib-only script (Copier runs it with its own interpreter), invoked from the template source via `_copier_conf.src_path`. It never ships, because only `templates/` is copied.
 
 - **Inside a Git work tree**: stage everything and commit `chore: scaffold from template` (copy) or `chore: update from template` (update), only when something is staged.
 - **Outside one**: a copy runs `git init` and commits `Init commit`; an update does nothing.
 - Commits bypass hooks, since hooks are installed later by `mise run install`.
-- Then `mise run install`, and `mise run ci` when `verify_ci` is true.
+- Then `mise run install`, and `mise run ci`.
 
 Keeping this logic in a script rather than YAML shell one-liners lets `tests/test_git_tasks.py` exercise it against real Git in temporary directories.
 
@@ -128,10 +125,10 @@ Python: {{ python_version }}
 
 ### Conditional Sections
 
-Make files and directories conditional by templating their names with Jinja expressions. For example, a file rendered only when the `with_ruff` fact is true:
+Make files and directories conditional by templating their names with Jinja expressions. For example, a file rendered only when the `is_app` fact is true:
 
 ```
-{% if with_ruff %}ruff.toml{% endif %}.jinja
+{% if is_app %}main.py{% endif %}.jinja
 ```
 
 Important: keep the template suffix (`.jinja`) outside the Jinja expression. If the suffix is inside the condition the file won't be treated as a template and will be copied verbatim.

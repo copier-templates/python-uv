@@ -60,10 +60,10 @@ production_deps:
     help: "Enter production dependencies as a JSON array (e.g., [\"httpx[http2]\"])"
     default: []
 
-dev_deps:
+extra_dev_deps:
     type: json
-    help: "Enter development dependencies as a JSON array"
-    default: ["pytest", "pytest-cov", "ruff"]
+    help: "Additional development dependencies appended to the always-on tooling (pytest, pytest-cov, ruff), as a JSON array"
+    default: []
 
 include_license:
     type: bool
@@ -121,38 +121,6 @@ is_package:
     default: "{{ project_type == 'package' }}"
     when: false
 
-# PEP 503-normalised distribution names, without extras, specifiers or markers.
-dev_dep_names:
-    type: json
-    default: >-
-        {{ dev_deps
-        | map('regex_replace', '^\\s*([A-Za-z0-9][A-Za-z0-9._-]*).*$', '\\1')
-        | map('lower')
-        | map('regex_replace', '[-_.]+', '-')
-        | list | tojson }}
-    when: false
-
-with_ruff:
-    type: bool
-    default: "{{ 'ruff' in dev_dep_names }}"
-    when: false
-
-with_pytest:
-    type: bool
-    default: "{{ 'pytest' in dev_dep_names }}"
-    when: false
-
-with_pytest_cov:
-    type: bool
-    default: "{{ 'pytest-cov' in dev_dep_names }}"
-    when: false
-
-# Post-copy `mise run ci` exists only when the project has both pytest and ruff.
-verify_ci:
-    type: bool
-    default: "{{ with_pytest and with_ruff }}"
-    when: false
-
 _min_copier_version: "9.0.0"
 _templates_suffix: .jinja
 _subdirectory: templates
@@ -176,10 +144,9 @@ _tasks:
           - "{{ _copier_python }}"
           - "{{ _copier_conf.src_path }}/tasks/lifecycle.py"
           - "{{ _copier_operation }}"
-          - "--verify-ci={{ verify_ci }}"
       when: "{{ _copier_operation in ['copy', 'update'] }}"
 
 _message_after_copy: |
-    Your project "{{ project_name }}" was created{% if verify_ci %} and verified (`mise run install` + `mise run ci` passed){% else %} (`mise run install` passed){% endif %}.
+    Your project "{{ project_name }}" was created and verified (`mise run install` + `mise run ci` passed).
     Next steps:
       cd {{ _folder_name }}

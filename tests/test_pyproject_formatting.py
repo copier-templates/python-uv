@@ -24,9 +24,9 @@ def _assert_section_separation(path: Path) -> None:
             )
 
 
-@pytest.mark.parametrize("variant", ["basic", "ruff", "app", "lib", "license"])
+@pytest.mark.parametrize("variant", ["basic", "app", "lib", "license"])
 def test_pyproject_sections_separated_by_blank_lines(projects: ProjectRegistry, variant: str):
-    """Every rendered variant (package/app/lib, with/without ruff/license)
+    """Every rendered variant (package/app/lib, with/without license)
     must separate top-level sections with at least one blank line, no matter
     which conditional blocks were skipped. Registry renders are cached: no
     extra Copier renders."""
