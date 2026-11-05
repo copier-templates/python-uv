@@ -35,4 +35,13 @@ def test_copier_tasks_install_selected_python_before_sync():
 
     install = next(task for task in tasks if isinstance(task, list) and task[:3] == ["uv", "python", "install"])
     assert "python_version" in install[3]
-    assert tasks.index(install) < tasks.index(["uv", "sync"])
+    sync = next(task for task in tasks if isinstance(task, list) and task[:2] == ["uv", "sync"])
+    assert tasks.index(install) < tasks.index(sync)
+
+
+def test_copier_tasks_pin_uv_sync_to_selected_python():
+    """`uv sync` without `--python` picks the newest interpreter on PATH, ignoring `python_version`."""
+    tasks = copier_config()["_tasks"]
+
+    sync = next(task for task in tasks if isinstance(task, list) and task[:2] == ["uv", "sync"])
+    assert sync[2:] == ["--python", "{{ python_version }}"]

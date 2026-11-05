@@ -137,12 +137,16 @@ _exclude:
 
 _tasks:
     - ["uv", "python", "install", '{{ python_version }}']
-    - ["uv", "sync"]
+    - ["uv", "sync", "--python", '{{ python_version }}']
     - command: ["mise", "trust"]
     - command:
           - "{{ _copier_python }}"
           - "{{ _copier_conf.src_path }}/tasks/lifecycle.py"
           - "{{ _copier_operation }}"
+          - "--src"
+          - "{{ _copier_conf.src_path }}"
+          - "--answers"
+          - "{{ _copier_conf.answers_file }}"
       when: "{{ _copier_operation in ['copy', 'update'] }}"
 
 _message_after_copy: |

@@ -17,7 +17,7 @@ _.file = ".env"
 [tasks.install]
 description = "Install project dependencies"
 run = """
-uv sync --dev
+uv sync --dev --python {{ python_version }}
 prek install --force
 """
 
