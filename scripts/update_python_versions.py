@@ -10,6 +10,7 @@ Stdlib-only, repo-maintenance tooling: it never ships to generated projects.
 
 import json
 import re
+import ssl
 import sys
 import urllib.request
 from pathlib import Path
@@ -96,8 +97,20 @@ def current_default_version(content: str) -> str:
     raise ValueError("no `default:` line follows the python-version-choices end marker")
 
 
+def _ssl_context() -> ssl.SSLContext:
+    """Default TLS context minus OpenSSL strict X.509 checks.
+
+    Python 3.13+ enables VERIFY_X509_STRICT by default, which rejects the corporate
+    Zscaler root (non-critical Basic Constraints, no Key Usage). Clearing it only
+    affects this script's requests.
+    """
+    context = ssl.create_default_context()
+    context.verify_flags &= ~ssl.VERIFY_X509_STRICT
+    return context
+
+
 def _fetch_releases() -> list[dict[str, Any]]:
-    with urllib.request.urlopen(API_URL, timeout=TIMEOUT_SECONDS) as response:
+    with urllib.request.urlopen(API_URL, timeout=TIMEOUT_SECONDS, context=_ssl_context()) as response:
         records = json.loads(response.read().decode("utf-8"))
     if not isinstance(records, list):
         raise ValueError(f"expected a JSON list from {API_URL}, got {type(records).__name__}")
