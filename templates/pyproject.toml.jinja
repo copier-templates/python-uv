@@ -9,18 +9,8 @@ authors = [
 requires-python = ">={{ python_version }}"
 
 {%- if include_license %}
-{%- set spdx_map = {
-    'mit': 'MIT',
-    'apache-2.0': 'Apache-2.0',
-    'gpl-2.0': 'GPL-2.0-only',
-    'gpl-3.0': 'GPL-3.0-only',
-    'lgpl-2.0': 'LGPL-2.0-only',
-    'lgpl-2.1': 'LGPL-2.1-only',
-    'lgpl-3.0': 'LGPL-3.0-only',
-    'mpl-2.0': 'MPL-2.0'
-} %}
 
-license = "{{ spdx_map.get(license_type, license_type) }}"
+license = "{{ license_spdx }}"
 license-files = ["LICENSE"]
 
 {%- endif %}

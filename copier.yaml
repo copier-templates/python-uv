@@ -83,6 +83,21 @@ license_type:
     default: mit
     when: "{{ include_license }}"
 
+license_spdx:
+    type: str
+    default: >-
+        {{ {
+            'mit': 'MIT',
+            'apache-2.0': 'Apache-2.0',
+            'gpl-2.0': 'GPL-2.0-only',
+            'gpl-3.0': 'GPL-3.0-only',
+            'lgpl-2.0': 'LGPL-2.0-only',
+            'lgpl-2.1': 'LGPL-2.1-only',
+            'lgpl-3.0': 'LGPL-3.0-only',
+            'mpl-2.0': 'MPL-2.0',
+        }[license_type] }}
+    when: false
+
 github_integration:
     type: bool
     help: "Include GitHub workflow templates?"
@@ -104,19 +119,36 @@ is_package:
     default: "{{ project_type == 'package' }}"
     when: false
 
+# PEP 503-normalised distribution names, without extras, specifiers or markers.
+dev_dep_names:
+    type: json
+    default: >-
+        {{ dev_deps
+        | map('regex_replace', '^\\s*([A-Za-z0-9][A-Za-z0-9._-]*).*$', '\\1')
+        | map('lower')
+        | map('regex_replace', '[-_.]+', '-')
+        | list | tojson }}
+    when: false
+
 with_ruff:
     type: bool
-    default: "{{ 'ruff' in dev_deps }}"
+    default: "{{ 'ruff' in dev_dep_names }}"
     when: false
 
 with_pytest:
     type: bool
-    default: "{{ 'pytest' in dev_deps }}"
+    default: "{{ 'pytest' in dev_dep_names }}"
     when: false
 
 with_pytest_cov:
     type: bool
-    default: "{{ 'pytest-cov' in dev_deps }}"
+    default: "{{ 'pytest-cov' in dev_dep_names }}"
+    when: false
+
+# Post-copy `mise run ci` exists only when the project has both pytest and ruff.
+verify_ci:
+    type: bool
+    default: "{{ with_pytest and with_ruff }}"
     when: false
 
 _min_copier_version: "9.0.0"
