@@ -14,6 +14,7 @@ BASE_TASKS = {
     "test:unit",
     "test:integration",
     "hooks",
+    "hooks:update",
     "doctor",
     "bootstrap",
     "changelog",
@@ -184,6 +185,7 @@ def test_mise_toml_agent_entrypoints(projects: ProjectRegistry):
     assert "uv sync --dev" in tasks["install"]["run"]
     assert "mise doctor" in tasks["doctor"]["run"]
     assert "prek run --all-files" in tasks["hooks"]["run"]
+    assert tasks["hooks:update"]["run"] == "prek update"
     assert "git-cliff" in tasks["changelog"]["run"]
     assert ".venv/" in tasks["clean:all"]["run"]
     assert ".venv/" not in tasks["clean"]["run"]
