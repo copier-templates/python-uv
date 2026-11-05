@@ -26,37 +26,43 @@ def _git(dst: Path, *args: str, check: bool = False) -> subprocess.CompletedProc
 
 def render_paths(src: Path, answers: Path) -> set[str]:
     """Render `src` with `answers` into a temp dir (skipping tasks) and return the relative paths Copier produced."""
+    argv = [
+        sys.executable,
+        "-m",
+        "copier",
+        "copy",
+        "--trust",
+        "--defaults",
+        "--skip-tasks",
+        "--data-file",
+        str(answers),
+        str(src),
+    ]
     with tempfile.TemporaryDirectory() as tmp:
-        subprocess.run(  # noqa: S603
-            [
-                sys.executable,
-                "-m",
-                "copier",
-                "copy",
-                "--trust",
-                "--defaults",
-                "--skip-tasks",
-                "--data-file",
-                str(answers),
-                str(src),
-                tmp,
-            ],  # noqa: S607
-            check=True,
-            capture_output=True,
-        )
+        result = subprocess.run([*argv, tmp], capture_output=True, text=True, check=False)  # noqa: S603
+        if result.returncode:
+            sys.stderr.write(result.stderr)
+            result.check_returncode()
         return {path.relative_to(tmp).as_posix() for path in Path(tmp).rglob("*") if path.is_file()}
 
 
 def _commit_rendered(dst: Path, message: str, render: Callable[[], set[str]]) -> None:
-    """Stage only the rendered paths (plus generated lock files), print what is staged, and commit when non-empty."""
-    paths = {path for path in render() | set(GENERATED_FILES) if (dst / path).is_file()}
-    if paths:
-        _git(dst, "add", "--force", "--", *sorted(paths), check=True)
-    staged = _git(dst, "diff", "--cached", "--name-status")
+    """Commit only this run's paths: rendered files, generated lock files, and tracked files the template dropped.
+
+    Other staged work stays staged; `git commit -- <paths>` commits just the listed paths.
+    """
+    rendered = render()
+    existing = {path for path in rendered | set(GENERATED_FILES) if (dst / path).is_file()}
+    dropped = set(_git(dst, "ls-files", "--deleted").stdout.splitlines()) - rendered
+    paths = sorted(existing | dropped)
+    if not paths:
+        return
+    _git(dst, "add", "--force", "--", *paths, check=True)
+    staged = _git(dst, "diff", "--cached", "--name-status", "--", *paths)
     if not staged.stdout.strip():
         return
     print(staged.stdout, end="")
-    _git(dst, "commit", "--no-verify", "-m", message, check=True)
+    _git(dst, "commit", "--no-verify", "-m", message, "--", *paths, check=True)
 
 
 def run(operation: str, dst: Path, *, mise: Callable[[list[str]], None], render: Callable[[], set[str]]) -> None:
