@@ -88,3 +88,9 @@ def test_file_fixers_get_distinct_serial_tiers_before_checks():
     check_tiers = [aliases[hook["priority"]] for hook_id, hook in hooks.items() if hook_id not in FILE_FIXER_IDS]
     assert len(set(fixer_tiers)) == len(fixer_tiers), "file fixers must not share a priority tier"
     assert min(check_tiers) > max(fixer_tiers), "read-only checks must run after every file fixer"
+
+
+def test_prek_update_enforces_cooldown_days():
+    """`prek update` must hold new hook revs back for a release-age cooldown (supply-chain guard)."""
+    cooldown_days = _prek_config()["update"]["cooldown_days"]
+    assert isinstance(cooldown_days, int) and 1 <= cooldown_days <= 255, "cooldown_days must be 1-255 to be enabled"
