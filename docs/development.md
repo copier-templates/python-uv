@@ -35,9 +35,9 @@ Execute the full test suite:
 mise run test
 ```
 
-Run specific test files:
+Run specific test files (through mise, never bare `pytest`):
 ```bash
-uv run pytest tests/test_core_structure.py
+mise exec -- uv run pytest tests/test_core_structure.py
 ```
 
 ### Code Quality

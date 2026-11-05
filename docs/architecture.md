@@ -11,10 +11,9 @@ The template is built using [Copier](https://copier.readthedocs.io/), a project 
 ### `copier.yaml`
 
 The main template configuration file that defines:
-- **Questions**: Interactive prompts for template variables
+- **Questions**: Interactive prompts, plus hidden computed render facts (see below)
 - **Exclusions**: Files/directories not copied to generated projects via `_exclude`
-- **Jinja Extensions**: Custom Jinja filters and extensions
-- **Tasks**: Post-generation operations (migrations, setup scripts)
+- **Tasks**: Post-copy/update steps via `_tasks` (see [Post-copy lifecycle](#post-copy-lifecycle))
 
 ### `python_version` Question
 
@@ -31,20 +30,35 @@ The main template configuration file that defines:
 
 ### Computed Render Facts
 
-Six hidden `bool` questions derive render facts from the answers above instead of asking the user:
+Hidden questions (`when: false`) derive render facts from the answers instead of prompting:
 
-- `is_app`, `is_lib`, `is_package` — derived from `project_type`
-- `with_ruff`, `with_pytest`, `with_pytest_cov` — derived from `dev_deps` membership
+| Fact | Derived from |
+|------|--------------|
+| `is_app`, `is_lib`, `is_package` | `project_type` |
+| `dev_dep_names` | `dev_deps`, normalised to PEP 503 names (extras, specifiers and markers stripped) |
+| `with_ruff`, `with_pytest`, `with_pytest_cov` | membership in `dev_dep_names` |
+| `verify_ci` | `with_pytest and with_ruff`; gates the post-copy `mise run ci` |
+| `license_spdx` | `license_type`, mapped to an SPDX identifier |
 
-- **Declaration**: Plain `bool` questions with a Jinja `default` (e.g. `default: "{{ 'pytest' in dev_deps }}"`) and `when: false`. The `when: false` hides them from the interactive prompt and — because Copier omits `when: false` questions from the answers file — from `.copier-answers.yml` as well. That omission is a contract the refactor leans on: the facts are re-derived on every render instead of being replayed verbatim by `copier update`.
-- **Ordering**: Each fact is declared in `copier.yaml` *after* the question it depends on (`project_type`, `dev_deps`). Ordering matters because `_envops.undefined` is `jinja2.StrictUndefined`: evaluating a fact's default before its dependency exists would raise instead of rendering.
-- **Naming**: `_`-prefixed keys are reserved by Copier for its own settings (`_subdirectory`, `_exclude`, `_tasks`, ...), so the facts use plain names.
-- **Consumers**:
-  - `_exclude` drops `src/`, `main.py`, and the lib-only `py.typed` based on `is_app` and `is_lib`.
-  - `_tasks` gates the `mise run ci` post-copy step on `with_pytest and with_ruff`.
-  - `templates/pyproject.toml.jinja`, `templates/mise.toml.jinja`, `templates/README.md.jinja`, `templates/src/{{module_name}}/__init__.py.jinja`, and `templates/tests/unit/test_init.py.jinja` evaluate the facts instead of re-evaluating `project_type` / `dev_deps` conditions inline.
+- **Declaration**: `copier.yaml` keys with a Jinja `default` and `when: false`. Copier omits `when: false` questions from `.copier-answers.yml`, so facts are re-derived on every render and `copier update` never replays a stale value. `tests/test_render_variants.py` pins this.
+- **Ordering**: Each fact is declared after the answers it reads. `_envops.undefined` is `jinja2.StrictUndefined`, so an earlier default would fail to render.
+- **Naming**: `_`-prefixed keys are reserved for Copier settings, so facts use plain names.
+- **Consumers**: `_exclude` (`is_app`, `is_lib`, `include_license`, `github_integration`), `_tasks` (`verify_ci`), and the templates `pyproject.toml.jinja`, `mise.toml.jinja`, `README.md.jinja`, `src/{{module_name}}/__init__.py.jinja` and `tests/unit/test_init.py.jinja`.
 
-The existing `module_name` question uses the same mechanism: `type: str`, a Jinja `default`, and `when: false`.
+The `module_name` question uses the same mechanism: `type: str`, a Jinja `default`, and `when: false`.
+
+### Post-copy Lifecycle
+
+`_tasks` in `copier.yaml` runs, in order: `uv python install <python_version>`, `uv sync`, `mise trust`, then `tasks/lifecycle.py {copy|update} --verify-ci=<verify_ci>` (copy and update only).
+
+`tasks/lifecycle.py` is a stdlib-only script (Copier runs it with its own interpreter), invoked from the template source via `_copier_conf.src_path`. It never ships, because only `templates/` is copied.
+
+- **Inside a Git work tree**: stage everything and commit `chore: scaffold from template` (copy) or `chore: update from template` (update), only when something is staged.
+- **Outside one**: a copy runs `git init` and commits `Init commit`; an update does nothing.
+- Commits bypass hooks, since hooks are installed later by `mise run install`.
+- Then `mise run install`, and `mise run ci` when `verify_ci` is true.
+
+Keeping this logic in a script rather than YAML shell one-liners lets `tests/test_git_tasks.py` exercise it against real Git in temporary directories.
 
 ## Template Structure
 
@@ -56,18 +70,16 @@ License partials under `templates/licenses/` are Jinja includes excluded from co
 
 ```
 ├── templates/                   # Copier payload (_subdirectory)
-│   ├── src/{{module_name}}/     # Main source code directory (templated)
-│   │   ├── __init__.py.jinja    # Package initialization
-│   │   └── py.typed.jinja       # Typed-package marker (lib only)
-│   ├── tests/                   # Test directory structure (templated)
+│   ├── src/{{module_name}}/     # Package source (app excludes it; lib keeps py.typed)
 │   │   ├── __init__.py.jinja
-│   │   └── unit/
-│   │       └── test_init.py.jinja
-│   ├── .github/workflows/       # CI workflows (verbatim)
-│   │   ├── test.yml
-│   │   └── prek.yml
-│   ├── licenses/                # License partials (included, excluded from copy)
-│   ├── .editorconfig            # Editor config (verbatim)
+│   │   └── py.typed.jinja
+│   ├── tests/unit/test_init.py.jinja  # Test payload of generated projects
+│   ├── .github/workflows/       # test.yml, prek.yml (verbatim; excluded unless github_integration)
+│   ├── licenses/                # License partials (Jinja includes, excluded from copy)
+│   ├── prek.toml                # Git hooks (verbatim; root is a symlink)
+│   ├── cliff.toml               # Changelog config (verbatim; root is a symlink)
+│   ├── .editorconfig            # Editor config (verbatim; root is a symlink)
+│   ├── scripts/release.sh       # Release script (verbatim; root is a symlink)
 │   ├── .gitattributes.jinja
 │   ├── .gitignore.jinja
 │   ├── pyproject.toml.jinja     # Project configuration (templated)
@@ -75,28 +87,28 @@ License partials under `templates/licenses/` are Jinja includes excluded from co
 │   ├── mise.toml.jinja          # Task runner config (templated)
 │   ├── main.py.jinja            # App entrypoint (app only)
 │   ├── LICENSE.jinja            # License file (optional, includes licenses/*)
-│   ├── prek.toml                # Git hooks (verbatim, keep in sync with root)
-│   ├── cliff.toml               # Changelog config (verbatim)
-│   ├── scripts/
-│   │   └── release.sh           # Release script (verbatim)
-│   └── {{ _copier_conf.answers_file }}.jinja  # Answers file configuration
+│   └── {{ _copier_conf.answers_file }}.jinja  # Answers file
 │
-├── examples/                    # Example data files (outside templates/, not copied)
-│   └── config-basic.yml         # Sample answers file
-├── tests/                       # Test suite (outside templates/, not copied)
-│   ├── _projects.py             # Render pipeline and project registry
-│   ├── conftest.py
-│   ├── test_core_structure.py
-│   ├── test_exclusions.py
-│   └── test_conditional_sections.py
+├── tasks/lifecycle.py           # Post-copy Git lifecycle script (never ships)
+├── scripts/                     # Maintainer scripts (never ships)
+├── examples/                    # Sample data files (never ships)
+│   └── config-basic.yml
+├── tests/                       # Test suite (never ships; see Testing)
+├── docs/                        # Documentation and ADRs (never ships)
 ├── copier.yaml                  # Template configuration (_subdirectory: templates)
 └── README.md                    # Template documentation
 ```
 
+Root `prek.toml`, `cliff.toml`, `.editorconfig` and `scripts/release.sh` are
+relative symlinks into `templates/`, so there is one source of truth. Root
+`.github/workflows/*.yml` are byte copies of the payload instead, because
+GitHub Actions does not reliably follow symlinked workflow files. Drift is
+guarded by `tests/test_sync.py`; see [ADR 0001](adr/0001-symlink-root-tooling-to-payload.md).
+
 ## Excluded Directories
 
 Only `templates/` is copied to generated projects. Everything outside it —
-`examples/`, `tests/`, `docs/`, `scripts/`, `copier.yaml` itself — is
+`examples/`, `tests/`, `docs/`, `scripts/`, `tasks/`, `copier.yaml` itself — is
 template tooling and never lands in generated projects.
 
 Within `templates/`, `licenses/` partials are excluded from copy via `_exclude`
@@ -116,21 +128,19 @@ Python: {{ python_version }}
 
 ### Conditional Sections
 
-Make files and directories conditional by templating their names with Jinja expressions. For example, generate a file only when `use_prek` is true:
+Make files and directories conditional by templating their names with Jinja expressions. For example, a file rendered only when the `with_ruff` fact is true:
 
 ```
-{% if use_prek %}prek.toml{% endif %}.jinja
+{% if with_ruff %}ruff.toml{% endif %}.jinja
 ```
 
-Important: keep the template suffix (by default `.jinja`) outside the Jinja expression. If the suffix is inside the condition the file won't be treated as a template and will be copied verbatim.
+Important: keep the template suffix (`.jinja`) outside the Jinja expression. If the suffix is inside the condition the file won't be treated as a template and will be copied verbatim.
 
-Concrete example:
-
-```
-{% if enable_feature %}optional_feature.py{% endif %}.jinja
-```
-
-See `tests/test_conditional_sections.py` for expected behavior and the official Copier docs ("Conditional files and directories") for more details.
+Optional content inside a file uses Jinja conditionals; whole files are usually
+gated with `_exclude` instead, as `copier.yaml` does for `src/`, `main.py`,
+`LICENSE` and `.github/`. See `tests/test_conditional_sections.py` and
+`tests/test_exclusions.py` for expected behavior, and the official Copier docs
+("Conditional files and directories") for more details.
 
 ### File Extensions
 
@@ -145,24 +155,30 @@ templates/prek.toml             # Copied without processing
 
 ## Testing
 
-The template includes comprehensive tests in `tests/`:
+The test suite in `tests/` validates the template by rendering it with Copier
+and asserting on the output. Key modules:
 
 | Test | Purpose |
 |------|---------|
-| `test_core_structure.py` | Validates project structure, required files, and directories |
-| `test_exclusions.py` | Ensures excluded files aren't rendered in generated projects |
-| `test_conditional_sections.py` | Tests conditional rendering based on configuration |
-| `test_python_versions.py` | Pins the `python_version` question, marker block, and maintenance script |
+| `test_sync.py` | Root symlinks, workflow byte copies, tool pins and `TASK_CONTRACT` against a rendered `mise.toml` |
+| `test_agent_sync.py` | `.agents/` roster and the verbatim payload list stay in sync with the tree |
+| `test_copier_settings.py` | Only real Copier settings appear as `_` keys in `copier.yaml` |
+| `test_render_variants.py` | Computed render facts and the answers-file omission contract |
+| `test_git_tasks.py` | `tasks/lifecycle.py` commits, `git init` and verification, against real Git |
+| `test_update.py` | `copier update` of a project generated from the git-backed template repo |
+| `test_core_structure.py`, `test_exclusions.py`, `test_conditional_sections.py` | Rendered structure, excluded paths and conditional sections |
+| `test_python_versions.py`, `test_python_version_render.py`, `test_update_python_versions_script.py` | `python_version` question, its rendered pins, and the marker-block script |
 
 ### Test Fixtures
 
-The render pipeline (template snapshot, `BASE_DATA`, `VARIANTS`,
-`ProjectRegistry`) lives in `tests/_projects.py`; `tests/conftest.py` hosts
-the `projects` registry fixture, the thin `generated_*` wrappers,
-`_git_template_repo`, and `LICENSE_TEST_CASES`:
+The render pipeline lives in `tests/_projects.py`, the one harness module test
+files import from. It provides `VARIANTS`, `TASK_VARIANTS`, `ProjectRegistry`,
+the template snapshot, and the shared loaders (`load_toml`, `copier_config`,
+`pyproject`, `mise_toml`, `mise_tools`, `git()`). `tests/conftest.py` hosts only
+fixtures (`template_source`, `projects`, `git_template_repo`).
 
-- **Session-scoped `projects` registry**: A `ProjectRegistry` renders each (variant, overrides) pair once per session, reused across tests
-- **Module-scoped `generated_*` wrappers**: Delegate to `projects.render(...)`; the render cache lives in the registry
+- **Session-scoped `projects` registry**: `projects.render("<variant>")` renders each variant once per session, into pytest's `tmp_path_factory`
+- **Task variants**: `TASK_VARIANTS` render with `copier.yaml` `_tasks` (a full `uv sync` each); all others render with `skip_tasks=True`
 - **Read-only operations**: All tests are non-mutating to enable fixture reuse
 
 ## Variable Types

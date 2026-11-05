@@ -15,7 +15,7 @@ You are the QA & TDD Specialist. Worker only; work alone. `AGENTS.md` Gate gover
 
 ## Behavior, not implementation
 
-Assert observable behavior only: rendered files/dirs exist, rendered content contains contract strings, `mise.toml` task names match, CLI exit codes. Name tests `test_<behavior>_<condition>`; prefer `@pytest.mark.parametrize` over duplicates. Cover normal + edge case per behavior. Reuse `generated_*` session fixtures in `tests/conftest.py`.
+Assert observable behavior only: rendered files/dirs exist, rendered content contains contract strings, `mise.toml` task names match, CLI exit codes. Name tests `test_<behavior>_<condition>`; prefer `@pytest.mark.parametrize` over duplicates. Cover normal + edge case per behavior. Render through the session `projects` registry: `projects.render("<variant>")`, with variants defined in `VARIANTS` in `tests/_projects.py`.
 
 ## Safety and handoff
 
