@@ -6,6 +6,7 @@ Real git in temp dirs with a recording `mise` fake; the Copier wiring is covered
 from __future__ import annotations
 
 import os
+import subprocess
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -110,6 +111,36 @@ def test_modified_rendered_file_is_committed_on_update(work_tree: Path):
     lifecycle.run("update", work_tree, mise=RecordingMise(work_tree), render=_rendered("README.md"))
 
     assert git(work_tree, "show", "--name-only", "--format=", "HEAD").stdout.split() == ["README.md"]
+
+
+def test_tracked_files_dropped_by_template_are_committed_as_deletions(work_tree: Path):
+    (work_tree / "README.md").unlink()
+
+    lifecycle.run("update", work_tree, mise=RecordingMise(work_tree), render=_rendered())
+
+    assert git(work_tree, "show", "--name-only", "--format=", "HEAD").stdout.split() == ["README.md"]
+    assert git(work_tree, "status", "--porcelain").stdout == ""
+
+
+def test_other_staged_work_is_left_staged(work_tree: Path):
+    _add_file(work_tree)
+    (work_tree / "user-notes.md").write_text("mine\n")
+    git(work_tree, "add", "user-notes.md")
+
+    lifecycle.run("copy", work_tree, mise=RecordingMise(work_tree), render=_rendered("change.txt"))
+
+    assert git(work_tree, "show", "--name-only", "--format=", "HEAD").stdout.split() == ["change.txt"]
+    assert git(work_tree, "diff", "--cached", "--name-only").stdout == "user-notes.md\n"
+
+
+def test_render_failure_surfaces_copier_stderr(tmp_path: Path, capsys: pytest.CaptureFixture[str]):
+    answers = tmp_path / ".copier-answers.yml"
+    answers.write_text("_src_path: /missing\n")
+
+    with pytest.raises(subprocess.CalledProcessError):
+        lifecycle.render_paths(tmp_path / "missing-template", answers)
+
+    assert capsys.readouterr().err.strip()
 
 
 def test_rendered_paths_missing_from_destination_are_skipped(work_tree: Path):

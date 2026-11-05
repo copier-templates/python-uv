@@ -27,10 +27,11 @@ def test_update_restores_python_version_for_legacy_project(git_template_repo: Pa
 
     Simulates a project generated from `v1.0.0` whose answers file predates the
     `python_version` question: the answer is dropped, then the project is updated
-    to `v1.0.1`, which must restore the answer and the rendered pins.
+    to `v1.0.1`, which must restore the answer and the rendered pins. Tasks are
+    skipped: the git lifecycle is covered in `test_git_tasks.py`.
     """
     data = BASE_DATA | {"project_name": "update_proj"}
-    project = run_copy_from(git_template_repo, tmp_path / "update", data, vcs_ref="v1.0.0")
+    project = run_copy_from(git_template_repo, tmp_path / "update", data, vcs_ref="v1.0.0", skip_tasks=True)
 
     answers_path = project / ".copier-answers.yml"
     answers, dropped = re.subn(r"(?m)^python_version:.*\n", "", answers_path.read_text())
@@ -38,9 +39,10 @@ def test_update_restores_python_version_for_legacy_project(git_template_repo: Pa
     answers_path.write_text(answers)
 
     with local.env(**GIT_IDENTITY):
+        git(project, "init")
         git(project, "add", "-A")
         git(project, "commit", "-m", "drop python_version answer")
-        run_update(str(project), defaults=True, overwrite=True, unsafe=True)
+        run_update(str(project), defaults=True, overwrite=True, unsafe=True, skip_tasks=True)
 
     restored = answers_path.read_text()
     assert re.search(PYTHON_VERSION_ANSWER_LINE.format(version=r"3\.12"), restored), (
