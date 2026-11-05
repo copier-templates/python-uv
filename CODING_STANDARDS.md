@@ -7,13 +7,25 @@ Disclosed reference; `AGENTS.md` Gate always applies. Only `templates/` ships.
 Any `templates/` change needs an added or updated `tests/` regression test: add or strengthen tests only, never weaken them. `tests/` validates renders; `templates/tests/` is the test payload that ships.
 A task-graph change in `templates/mise.toml.jinja` also updates `tests/test_conditional_sections.py`.
 Each render of a `TASK_VARIANTS` variant costs a full `uv sync`: reuse `projects.render("<variant>")` (variants live in `VARIANTS` in `tests/_projects.py`) before adding a Copier render, and list a new variant in `TASK_VARIANTS` only when a test needs its task outcomes (the rule is documented there); other variants render with `skip_tasks=True`.
-Root `prek.toml`, `cliff.toml`, `.editorconfig` and `scripts/release.sh` are symlinks into `templates/`: edit `templates/`, never the root link. Root `.github/workflows/*.yml` are byte copies of the payload (Actions does not reliably follow symlinks); a test enforces they stay identical.
+Root files marked as symlinks in [Template contract](#template-contract) are relative symlinks into `templates/`: edit `templates/`, never the root link. Root `.github/workflows/*.yml` are byte copies of the payload (Actions does not reliably follow symlinks); a test enforces they stay identical.
 
 ## Template contract
 
 `mise.toml` and generated projects expose the same core task names, pinned as `TASK_CONTRACT` in `tests/test_sync.py`. Maintenance tasks such as `update:python-versions` stay in root `mise.toml`. Generated projects ship no agent guidance; their `mise.toml` task contract is their interface.
 
-Verbatim payload files (copied unprocessed, never containing Jinja): `templates/prek.toml`, `templates/.editorconfig`, `templates/.github/workflows/*.yml`, `templates/cliff.toml`, `templates/scripts/release.sh`, `templates/scripts/check-version-tag.sh`. Keep this list in sync with the actual non-`.jinja` files under `templates/` (a regression test enforces it). `templates/licenses/` partials are Jinja includes, not verbatim copies.
+Verbatim payload files (copied unprocessed, never containing Jinja):
+
+| Payload file | Root copy |
+| --- | --- |
+| `templates/prek.toml` | Symlink |
+| `templates/cliff.toml` | Symlink |
+| `templates/taplo.toml` | Symlink |
+| `templates/.editorconfig` | Symlink |
+| `templates/.github/workflows/*.yml` | Byte copy (Actions does not follow symlinks) |
+| `templates/scripts/release.sh` | Symlink |
+| `templates/scripts/check-version-tag.sh` | Symlink |
+
+Keep this list in sync with the actual non-`.jinja` files under `templates/` (a regression test enforces it). `templates/licenses/` partials are Jinja includes, not verbatim copies.
 
 ## Shell
 

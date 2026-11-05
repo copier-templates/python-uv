@@ -29,11 +29,12 @@ def test_agents_doc_mentions_no_undefined_agents():
 def test_verbatim_payload_list_matches_template_tree():
     """The canonical verbatim-payload list must match the non-`.jinja` files under `templates/`."""
     standards_doc = (TEMPLATE_ROOT / "CODING_STANDARDS.md").read_text()
-    match = re.search(r"Verbatim payload files[^\n]*:\s*([^\n]+)", standards_doc)
-    assert match, "Canonical verbatim payload list missing from CODING_STANDARDS.md"
+    section = re.search(r"## Template contract(.*?)(?=\n## |\Z)", standards_doc, re.DOTALL)
+    assert section, "Canonical verbatim payload list missing from CODING_STANDARDS.md"
     listed = {
         p.relative_to(TEMPLATE_ROOT).as_posix()
-        for token in re.findall(r"`([^`]+)`", match.group(1))
+        for token in re.findall(r"`([^`]+)`", section.group(1))
+        if token.startswith("templates/")
         for p in TEMPLATE_ROOT.glob(token)
         if p.is_file()
     }

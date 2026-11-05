@@ -20,15 +20,17 @@ Usage:
   release.sh --help
 
 Cut a release in the current repository:
-  1. determines the next version (git-cliff over conventional commits)
+  1. determines the next version (always a patch bump; conventional commits
+     only shape the changelog)
   2. bumps [project] version in pyproject.toml and re-locks uv.lock
   3. regenerates CHANGELOG.md, commits, and tags (never pushes)
 
 Options:
   --version X.Y.Z   release this exact version (default: prompt on a TTY,
-                    or the git-cliff suggestion with --yes)
-  --yes             non-interactive: accept the suggested version and skip
-                    confirmations (required when not on a TTY)
+                    or the suggested patch version with --yes)
+  --yes             non-interactive: accept the suggested version, skip
+                    confirmations, and allow releasing from a non-main/master
+                    branch (required when not on a TTY)
   --help            print this help and exit
 
 Environment:
@@ -115,6 +117,35 @@ is_interactive() {
   [[ -t 0 && -t 1 ]] && command -v gum >/dev/null 2>&1
 }
 
+# Highest plain X.Y.Z tag in `git ls-remote --tags` output (empty when none).
+# Ignores non-semver tags and peeled (^{}) entries; portable across BSD/GNU sort.
+latest_remote_tag() { # <ls-remote-output>
+  printf '%s\n' "$1" \
+    | sed -nE 's#.*refs/tags/([0-9]+\.[0-9]+\.[0-9]+)$#\1#p' \
+    | sort -t. -k1,1n -k2,2n -k3,3n \
+    | tail -n 1
+}
+
+# Suggested next version: the patch bump above the highest known version
+# (pyproject, latest local tag, latest remote tag). Conventional commit types
+# never bump minor/major; pass --version to release those explicitly. A repo
+# with no tags yet keeps the pyproject version for its first release.
+suggested_version() { # <current> <last-tag> <remote-tag>
+  python - "$@" <<'EOF'
+import sys
+
+def key(version):
+    return tuple(int(part) for part in version.split("."))
+
+current, last, remote = sys.argv[1:4]
+if not last and not remote:
+    print(current)
+else:
+    major, minor, patch = max(key(version) for version in (current, last, remote) if version)
+    print(f"{major}.{minor}.{patch + 1}")
+EOF
+}
+
 main() {
   git rev-parse --show-toplevel >/dev/null 2>&1 || die "Not inside a git repository."
   cd "$(git rev-parse --show-toplevel)"
@@ -126,7 +157,15 @@ main() {
   local branch
   branch="$(git branch --show-current 2>/dev/null || true)"
   if [[ -n $branch && $branch != "main" && $branch != "master" ]]; then
-    log_warn "On branch '${branch}' (expected main/master). Continuing anyway."
+    if (( ASSUME_YES )); then
+      log_warn "On branch '${branch}' (expected main/master); continuing because --yes was given."
+    elif is_interactive; then
+      log_warn "On branch '${branch}' (expected main/master)."
+      gum confirm "Release from '${branch}' instead of main/master?" --default=false \
+        || { printf 'Aborted, nothing changed.\n'; exit 0; }
+    else
+      die "On branch '${branch}' (expected main/master). Switch to main/master, or re-run with --yes to release from here."
+    fi
   fi
   need_cmd git-cliff "Install it: mise install"
   need_cmd uv "Install it: mise install"
@@ -164,10 +203,7 @@ EOF
   # here; the push gate (check-version-tag) catches a forgotten --follow-tags.
   local remote_tag="" remote_refs="" escaped_version=""
   if remote_refs="$(git ls-remote --tags origin 2>/dev/null)"; then
-    remote_tag="$(printf '%s\n' "$remote_refs" \
-      | grep -E --color=never 'refs/tags/[0-9]+\.[0-9]+\.[0-9]+$' \
-      | sed -E 's#.*refs/tags/##' \
-      | python -c 'import sys; ls=[l.strip() for l in sys.stdin if l.strip()]; print(sorted((tuple(map(int, v.split(".")), v) for v in ls))[-1][1] if ls else "")' || true)"
+    remote_tag="$(latest_remote_tag "$remote_refs")"
   fi
   if [[ -n $remote_tag && -n $last_tag ]]; then
     log_info "Latest tags: local ${last_tag}, remote ${remote_tag}."
@@ -177,14 +213,11 @@ EOF
     log_info "Latest local tag: ${last_tag} (origin unreachable or no remote tags)."
   fi
 
-  # 3. Determine the version to release.
+  # 3. Determine the version to release. The suggestion is always the next
+  # patch, regardless of feat/breaking commits.
   local suggested explicit=0
-  if (( has_tags )); then
-    suggested="$(git-cliff --bumped-version 2>/dev/null)" \
-      || die "git-cliff cannot suggest a version (no conventional commits since ${last_tag}?). Pass --version X.Y.Z explicitly."
-  else
-    suggested="$current_version"
-  fi
+  suggested="$(suggested_version "$current_version" "$last_tag" "$remote_tag")" \
+    || die "Cannot derive a patch version from pyproject (${current_version})${last_tag:+ or tag ${last_tag}}${remote_tag:+ or remote tag ${remote_tag}}. Pass --version X.Y.Z explicitly."
   if [[ -n $VERSION ]]; then
     explicit=1
   fi

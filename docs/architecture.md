@@ -75,8 +75,10 @@ License partials under `templates/licenses/` are Jinja includes excluded from co
 │   ├── licenses/                # License partials (Jinja includes, excluded from copy)
 │   ├── prek.toml                # Git hooks (verbatim; root is a symlink)
 │   ├── cliff.toml               # Changelog config (verbatim; root is a symlink)
+│   ├── taplo.toml               # TOML formatting (verbatim; root is a symlink)
 │   ├── .editorconfig            # Editor config (verbatim; root is a symlink)
 │   ├── scripts/release.sh       # Release script (verbatim; root is a symlink)
+│   ├── scripts/check-version-tag.sh  # Version-tag gate (verbatim; root is a symlink)
 │   ├── .gitattributes.jinja
 │   ├── .gitignore.jinja
 │   ├── pyproject.toml.jinja     # Project configuration (templated)
@@ -96,8 +98,8 @@ License partials under `templates/licenses/` are Jinja includes excluded from co
 └── README.md                    # Template documentation
 ```
 
-Root `prek.toml`, `cliff.toml`, `.editorconfig` and `scripts/release.sh` are
-relative symlinks into `templates/`, so there is one source of truth. Root
+Root files listed as symlinks in the [verbatim payload table](../CODING_STANDARDS.md#template-contract)
+are relative symlinks into `templates/`, so there is one source of truth. Root
 `.github/workflows/*.yml` are byte copies of the payload instead, because
 GitHub Actions does not reliably follow symlinked workflow files. Drift is
 guarded by `tests/test_sync.py`; see [ADR 0001](adr/0001-symlink-root-tooling-to-payload.md).

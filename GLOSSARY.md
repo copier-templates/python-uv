@@ -9,7 +9,7 @@ Domain terms for this Copier template. Use them as written.
 : Payload files copied without Jinja rendering. Canonical list: [Template contract](CODING_STANDARDS.md#template-contract).
 
 **Root tooling**
-: Files at the repo root that develop or release this template (`prek.toml`, `cliff.toml`, `.editorconfig`, `scripts/release.sh`, workflows). Never shipped unless they are also in the payload.
+: Files at the repo root that develop or release this template (symlinks into the payload per [Template contract](CODING_STANDARDS.md#template-contract), plus `mise.toml`, workflows). Never shipped unless they are also in the payload.
 
 **Symlink**
 : A root tooling file that points into `templates/`, the single source of truth. See [ADR 0001](docs/adr/0001-symlink-root-tooling-to-payload.md).

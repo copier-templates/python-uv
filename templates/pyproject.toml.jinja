@@ -4,27 +4,29 @@ version = "0.1.0"
 description = "{{project_description}}"
 readme = "README.md"
 authors = [
-    { name = "{{author_name}}", email = "{{author_email}}" }
+  { name = "{{author_name}}", email = "{{author_email}}" },
 ]
 requires-python = ">={{ python_version }}"
 
 {%- if include_license %}
 
 license = "{{ license_spdx }}"
-license-files = ["LICENSE"]
+license-files = [
+  "LICENSE",
+]
 
 {%- endif %}
 
 classifiers = [
-    "Development Status :: 5 - Production/Stable",
-    "Intended Audience :: Developers",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3"
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
 ]
 
 dependencies = [
 {%- for dep in production_deps %}
-    "{{dep}}",
+  "{{ dep }}",
 {%- endfor %}
 ]
 
@@ -37,18 +39,20 @@ dependencies = [
 {%- if not is_app %}
 
 [build-system]
-requires = ["uv_build>=0.11.8,<0.12.0"]
+requires = [
+  "uv_build>=0.11.8,<0.12.0",
+]
 build-backend = "uv_build"
 {%- endif %}
 
 [dependency-groups]
 dev = [
-    "pytest>=9,<10",
-    "pytest-cov",
-    "ruff",
-    "ty>=0.0.34",
+  "pytest>=9,<10",
+  "pytest-cov",
+  "ruff",
+  "ty>=0.0.34",
 {%- for dep in extra_dev_deps %}
-    "{{dep}}",
+  "{{ dep }}",
 {%- endfor %}
 ]
 
@@ -56,35 +60,49 @@ dev = [
 [tool.pytest]
 strict = true
 {%- if not is_app %}
-pythonpath = ["src"]
+pythonpath = [
+  "src",
+]
 {%- else %}
-pythonpath = ["."]
+pythonpath = [
+  ".",
+]
 {%- endif %}
-testpaths = ["tests"]
-python_files = ["test_*.py"]
+testpaths = [
+  "tests",
+]
+python_files = [
+  "test_*.py",
+]
 markers = [
-    "unit: marks tests as unit tests",
-    "integration: marks tests as integration tests",
+  "unit: marks tests as unit tests",
+  "integration: marks tests as integration tests",
 ]
 addopts = [
-    "--durations=5",
-    "--durations-min=0.0",
-    "--tb=short",
-    "--cov={% if is_app %}main{% else %}{{module_name}}{% endif %}",
-    "--cov-report=html",
-    "--cov-report=term-missing",
-    "--import-mode=importlib",
+  "--durations=5",
+  "--durations-min=0.0",
+  "--tb=short",
+  "--cov={% if is_app %}main{% else %}{{module_name}}{% endif %}",
+  "--cov-report=html",
+  "--cov-report=term-missing",
+  "--import-mode=importlib",
 ]
 
 [tool.coverage.run]
 branch = true
-omit = ["*/tests/*"]
+omit = [
+  "*/tests/*",
+]
 parallel = true
 relative_files = true
 {%- if is_app %}
-source = ["."]
+source = [
+  ".",
+]
 {%- else %}
-source_pkgs = ["{{module_name}}"]
+source_pkgs = [
+  "{{module_name}}",
+]
 {%- endif %}
 
 [tool.coverage.report]
@@ -93,20 +111,28 @@ skip_covered = false
 precision = 2
 fail_under = 98
 exclude_also = [
-    # Don't complain about missing debug-only code:
-    "def __repr__",
-    "if self\\.debug:",
+  # Don't complain about missing debug-only code:
+  "def __repr__",
+  "if self\\.debug:",
 
-    # Don't complain if tests don't hit defensive assertion code:
-    "raise AssertionError",
-    "raise NotImplementedError",
+  # Don't complain if tests don't hit defensive assertion code:
+  "raise AssertionError",
+  "raise NotImplementedError",
 
-    # Don't complain about abstract methods:
-    "@(abc\\.)?abstractmethod",
+  # Don't complain about abstract methods:
+  "@(abc\\.)?abstractmethod",
 ]
 
 [tool.ty.src]
-include = [{% if is_app %}"main.py", "tests"{% else %}"src", "tests"{% endif %}]
+include = [
+{%- if is_app %}
+  "main.py",
+  "tests",
+{%- else %}
+  "src",
+  "tests",
+{%- endif %}
+]
 
 [tool.ty.rules]
 possibly-unresolved-reference = "error"
@@ -137,41 +163,54 @@ target-version = "py{{ python_version|replace('.', '') }}"
 
 [tool.ruff.lint]
 select = [
-    "E",    # pycodestyle errors
-    "W",    # pycodestyle warnings
-    "F",    # Pyflakes
-    "I",    # isort
-    "Q",    # flake8-quotes
-    "B",    # flake8-bugbear
-    "C4",   # flake8-comprehensions
-    "C90",  # mccabe complexity
-    "SIM",  # flake8-simplify
-    "DTZ",  # flake8-datetimez
-    "ARG",  # unused arguments
-    "PLE",  # Pylint errors
-    "PLW",  # Pylint warnings
-    "PLC",  # Pylint conventions
-    "UP",   # pyupgrade
-    "S",    # flake8-bandit
-    "RUF",  # Ruff-specific rules (unused noqa, mutable class defaults, ...)
-    "PTH",  # flake8-use-pathlib
-    "BLE",  # flake8-blind-except
-    "G",    # flake8-logging-format
-    "PGH003",  # blanket type: ignore
-    "ANN201", "ANN202", "ANN204",  # missing return annotations
+  "E",      # pycodestyle errors
+  "W",      # pycodestyle warnings
+  "F",      # Pyflakes
+  "I",      # isort
+  "Q",      # flake8-quotes
+  "B",      # flake8-bugbear
+  "C4",     # flake8-comprehensions
+  "C90",    # mccabe complexity
+  "SIM",    # flake8-simplify
+  "DTZ",    # flake8-datetimez
+  "ARG",    # unused arguments
+  "PLE",    # Pylint errors
+  "PLW",    # Pylint warnings
+  "PLC",    # Pylint conventions
+  "UP",     # pyupgrade
+  "S",      # flake8-bandit
+  "RUF",    # Ruff-specific rules (unused noqa, mutable class defaults, ...)
+  "PTH",    # flake8-use-pathlib
+  "BLE",    # flake8-blind-except
+  "G",      # flake8-logging-format
+  "PGH003", # blanket type: ignore
+  "ANN201",
+  "ANN202",
+  "ANN204", # missing return annotations
 ]
 ignore = [
-    "E501",  # line-too-long (formatter handles wrapping, but may exceed limit)
-    "RUF001", "RUF002", "RUF003",  # intentional typographic characters in text
-    "G004",  # f-string logging is the established style
+  "E501",   # line-too-long (formatter handles wrapping, but may exceed limit)
+  "RUF001",
+  "RUF002",
+  "RUF003", # intentional typographic characters in text
+  "G004",   # f-string logging is the established style
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/unit/**/*.py" = ["ARG001"]
-"tests/**/*.py" = ["S101", "S105", "S106", "ANN"]
+"tests/unit/**/*.py" = [
+  "ARG001",
+]
+"tests/**/*.py" = [
+  "S101",
+  "S105",
+  "S106",
+  "ANN",
+]
 
 [tool.ruff.lint.isort]
-known-first-party = ["{{module_name}}"]
+known-first-party = [
+  "{{module_name}}",
+]
 
 [tool.ruff.format]
 quote-style = "double"

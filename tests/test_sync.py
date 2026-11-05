@@ -16,6 +16,7 @@ from _projects import TEMPLATE_ROOT, ProjectRegistry, load_toml, mise_toml
 SYMLINKED_ROOT_PATHS = [
     "prek.toml",
     "cliff.toml",
+    "taplo.toml",
     ".editorconfig",
     "scripts/release.sh",
     "scripts/check-version-tag.sh",

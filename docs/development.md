@@ -56,8 +56,9 @@ mise run release
 ```
 
 On a TTY with `gum` it prompts to confirm/edit the suggested version
-(computed by `git-cliff` from conventional commits) and to approve the
-commit. Non-interactive (or without `gum`):
+(always the next patch above the latest tag; conventional commits only
+shape the changelog) and to approve the commit. Pass `--version` when a
+minor or major release is intended. Non-interactive (or without `gum`):
 
 ```bash
 mise run release -- --version 0.4.0 --yes

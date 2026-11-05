@@ -4,7 +4,7 @@ Copier template for Python + `uv`, not an app. `templates/` is the payload (`_su
 
 ## Gate
 
-Run every command through mise (toolchain pinned in `mise.toml`): never invoke `pytest`, `ruff`, `shellcheck`, or `uv` directly.
+Run every command through mise (toolchain pinned in `mise.toml`): other commands can be invoked only if mise task cannot handle them.
 Tight loop: `mise run ci` green before delivery.
 Work on the orchestrator-assigned isolated branch or worktree; never push — the orchestrator owns cleanup and fast-forward rebase. Branch names follow `feat|hotfix/issue-<n>-short-desc` and always merge to `main` (no develop or release branches). Keep `prek` hooks in sync with mise tasks.
 Local releases are human-run (`mise run release`); agents never bump versions, tag, or push, and never apply `release:*` labels. The CI release job in `.github/workflows/release.yml` cuts, validates, pushes, and merges a labeled release PR once gates pass.
