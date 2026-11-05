@@ -114,11 +114,16 @@ def test_modified_rendered_file_is_committed_on_update(work_tree: Path):
 
 
 def test_tracked_files_dropped_by_template_are_committed_as_deletions(work_tree: Path):
+    (work_tree / "naïve notes.txt").write_text("odd name\n")
+    git(work_tree, "add", "-A")
+    git(work_tree, "commit", "-m", "add odd name")
     (work_tree / "README.md").unlink()
+    (work_tree / "naïve notes.txt").unlink()
 
     lifecycle.run("update", work_tree, mise=RecordingMise(work_tree), render=_rendered())
 
-    assert git(work_tree, "show", "--name-only", "--format=", "HEAD").stdout.split() == ["README.md"]
+    committed = git(work_tree, "show", "-z", "--name-only", "--format=", "HEAD").stdout
+    assert set(filter(None, committed.split("\0"))) == {"README.md", "naïve notes.txt"}
     assert git(work_tree, "status", "--porcelain").stdout == ""
 
 

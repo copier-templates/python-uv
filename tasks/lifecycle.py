@@ -53,7 +53,7 @@ def _commit_rendered(dst: Path, message: str, render: Callable[[], set[str]]) ->
     """
     rendered = render()
     existing = {path for path in rendered | set(GENERATED_FILES) if (dst / path).is_file()}
-    dropped = set(_git(dst, "ls-files", "--deleted").stdout.splitlines()) - rendered
+    dropped = set(filter(None, _git(dst, "ls-files", "-z", "--deleted").stdout.split("\0"))) - rendered
     paths = sorted(existing | dropped)
     if not paths:
         return
