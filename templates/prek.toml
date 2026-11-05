@@ -8,7 +8,19 @@ minimum_prek_version = "0.5.6"
 # checks, the commit-msg conventional-commit check, and the pre-push
 # version-tag gate. Without this, `prek install` only installs the pre-commit
 # shim and stage-specific hooks never fire.
-default_install_hook_types = ["pre-commit", "commit-msg", "pre-push"]
+default_install_hook_types = [
+  "pre-commit",
+  "commit-msg",
+  "pre-push",
+]
+
+# Hooks without an explicit `stages` list run on every installed shim
+# (pre-commit *and* commit-msg on every commit, plus pre-push on every push).
+# Pin the default to pre-commit so each hook runs once; stage-specific hooks
+# (conventional-pre-commit, check-version-tag) declare their own stages.
+default_stages = [
+  "pre-commit",
+]
 
 # Hold new hook revs back for a week so `prek update` never adopts a freshly published tag.
 [update]
@@ -23,6 +35,7 @@ fix-line-endings = 2
 fix-whitespace = 3
 fix-ruff-check = 4
 fix-ruff-format = 5
+fix-toml = 6
 checks = 10
 
 [[repos]]
@@ -31,7 +44,7 @@ rev = "3.0.0"
 hooks = [
   { id = "forbid-binary", priority = "checks" },
   { id = "script-must-have-extension", priority = "checks" },
-  { id = "shellcheck", priority = "checks" }
+  { id = "shellcheck", priority = "checks" },
 ]
 
 [[repos]]
@@ -41,12 +54,16 @@ hooks = [
   { id = "check-executables-have-shebangs", priority = "checks" },
   { id = "check-merge-conflict", priority = "checks" },
   { id = "check-toml", priority = "checks" },
-  { id = "check-yaml", priority = "checks", args = ["--allow-multiple-documents"] },
+  { id = "check-yaml", priority = "checks", args = [
+    "--allow-multiple-documents",
+  ] },
   { id = "detect-private-key", priority = "checks" },
   { id = "end-of-file-fixer", priority = "fix-eof" },
   { id = "fix-byte-order-marker", priority = "fix-bom" },
   { id = "mixed-line-ending", priority = "fix-line-endings" },
-  { id = "trailing-whitespace", priority = "fix-whitespace", args = ["--markdown-linebreak-ext=md"] }
+  { id = "trailing-whitespace", priority = "fix-whitespace", args = [
+    "--markdown-linebreak-ext=md",
+  ] },
 ]
 
 [[repos]]
@@ -60,19 +77,34 @@ hooks = [
 repo = "https://github.com/astral-sh/ruff-pre-commit"
 rev = "v0.17.2"
 hooks = [
-  { id = "ruff-check", priority = "fix-ruff-check", types_or = ["python", "pyi"], args = ["--fix"] },
-  { id = "ruff-format", priority = "fix-ruff-format", types_or = ["python", "pyi"] }
+  { id = "ruff-check", priority = "fix-ruff-check", types_or = [
+    "python",
+    "pyi",
+  ], args = [
+    "--fix",
+  ] },
+  { id = "ruff-format", priority = "fix-ruff-format", types_or = [
+    "python",
+    "pyi",
+  ] },
 ]
 
 [[repos]]
 repo = "local"
 hooks = [
-  { id = "check-version-tag", name = "pyproject version matches latest tag", entry = "./scripts/check-version-tag.sh", language = "system", stages = ["pre-push"], pass_filenames = false, always_run = true, priority = "checks" },
+  { id = "taplo-format", name = "taplo format", entry = "taplo format", language = "system", files = "\\.toml$", priority = "fix-toml" },
+  { id = "check-version-tag", name = "pyproject version matches latest tag", entry = "./scripts/check-version-tag.sh", language = "system", stages = [
+    "pre-push",
+  ], pass_filenames = false, always_run = true, priority = "checks" },
 ]
 
 [[repos]]
 repo = "https://github.com/compilerla/conventional-pre-commit"
 rev = "v4.4.0"
 hooks = [
-  { id = "conventional-pre-commit", priority = "checks", stages = ["commit-msg"], args = ["--verbose"] }
+  { id = "conventional-pre-commit", priority = "checks", stages = [
+    "commit-msg",
+  ], args = [
+    "--verbose",
+  ] },
 ]

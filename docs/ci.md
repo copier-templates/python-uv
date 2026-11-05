@@ -25,7 +25,7 @@ The CI pipeline triggers on every push and pull request to `main` (plus manual
 `workflow_dispatch` runs) and validates the template in a single Ubuntu job.
 Key features:
 
-- **Pinned toolchain**: Python, `uv`, and `shellcheck` versions come from
+- **Pinned toolchain**: Python, `uv`, `shellcheck`, and `taplo` versions come from
   `mise.toml` via `jdx/mise-action`, so CI uses exactly the toolchain pinned
   for local development (`mise run ci` is the same gate as `AGENTS.md` requires
   before pushing).
@@ -33,7 +33,7 @@ Key features:
   10-job grid (2 OS × 5 Pythons) multiplied Copier-render cost for no signal,
   since rendering is platform-independent Python and the interpreter is pinned.
 - **Dependency caching**: uv download caches are cached for faster runs.
-- **Test execution**: `mise run ci` runs `lint` + `format:check` + `hooks` + `test:unit`, where
+- **Test execution**: `mise run ci` runs `lint` + `format:check` + `hooks` + `test:unit` + `check:version-tag`, where
   `test:unit` is the Copier template validation suite in `tests/`.
 
 ## Key Stages
@@ -44,4 +44,4 @@ Key features:
 | 📥 Checkout | Retrieves repository code |
 | ⚙️ Setup | Installs pinned toolchain via mise |
 | 💾 Cache | Optimizes dependency installation |
-| 🧪 Tests | Executes `mise run ci` (lint + test:unit + format) |
+| 🧪 Tests | Executes `mise run ci` (lint + format:check + hooks + test:unit + check:version-tag) |

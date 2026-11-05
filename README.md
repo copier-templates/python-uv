@@ -200,6 +200,14 @@ Tests use session-scoped fixtures for optimal performance:
 
 Test files are located in `tests/`; [docs/architecture.md](docs/architecture.md#testing) describes each module. Fixtures live in `tests/conftest.py`, and the render variants and shared loaders in `tests/_projects.py`.
 
+## 🧹 TOML Formatting (taplo)
+
+All `*.toml` files (`pyproject.toml`, `mise.toml`, `prek.toml`, `cliff.toml`) are formatted with [taplo](https://taplo.tamasfe.com/) (`taplo = "0.10.0"`, pinned in `mise.toml`), enforced by the `taplo-format` prek hook — it autofixes on every commit, so there is no `mise run` task for it. Run it manually via `mise run hooks`, or check with `mise x taplo -- taplo format --check <file>`.
+
+Style rule: **one array item per line, always.** Taplo has no force-expand switch (`array_auto_collapse = false` does not stick and trailing commas do not protect), so `taplo.toml` sets `column_width = 1`, which deterministically expands every array instead of collapsing the ones that fit (empty arrays stay `[\n]`; comments and key order are preserved — verified against taplo 0.10.0, see the comment in `taplo.toml`).
+
+To discover available settings: `mise x taplo -- taplo config schema` prints the full JSON schema (`formatting`, `include`/`exclude`, per-path `rule` overrides). The Copier payload (`templates/pyproject.toml.jinja`, rendered `mise.toml`) emits taplo-clean output, so generated projects pass the hook with no extra step.
+
 ## 🔄 Prek Auto-Update
 
 The [`prek.yml`](.github/workflows/prek.yml) workflow keeps hook
@@ -252,4 +260,5 @@ For framework and tool documentation:
 - Copier Framework: [Copier Documentation](https://copier.readthedocs.io/en/stable/)
 - Git Hooks: [prek Documentation](https://prek.j178.dev/)
 - Ruff Formatter: [Ruff Documentation](https://docs.astral.sh/ruff/)
+- TOML Formatter: [taplo Documentation](https://taplo.tamasfe.com/)
 - UV Package Manager: [UV Documentation](https://docs.astral.sh/uv/)

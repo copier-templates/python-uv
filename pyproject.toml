@@ -1,9 +1,16 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = [
+  "setuptools>=61.0",
+]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-exclude = ["templates*", "extensions*", "tests*", "src*"]
+exclude = [
+  "templates*",
+  "extensions*",
+  "tests*",
+  "src*",
+]
 
 [project]
 name = "copier-python-uv"
@@ -12,21 +19,29 @@ description = "Copier template to bootstrap a Python package with uv and basic c
 readme = "README.md"
 requires-python = ">=3.12"
 license = "MIT"
-license-files = ["LICENSE"]
-authors = [
-    {name = "Patryk Kubiak", email = "8299306+kpatryk@users.noreply.github.com"}
+license-files = [
+  "LICENSE",
 ]
-keywords = ["copier", "template", "python", "uv", "packaging"]
+authors = [
+  { name = "Patryk Kubiak", email = "8299306+kpatryk@users.noreply.github.com" },
+]
+keywords = [
+  "copier",
+  "template",
+  "python",
+  "uv",
+  "packaging",
+]
 classifiers = [
-    "Development Status :: 5 - Production/Stable",
-    "Intended Audience :: Developers",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python",
-    "Programming Language :: Python :: 3",
-    "Topic :: Software Development :: Libraries :: Python Modules",
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "copier>=9.11.3",
+  "copier>=9.11.3",
 ]
 
 [project.urls]
@@ -36,23 +51,31 @@ Repository = "https://github.com/patryk-gpl/copier-python-uv.git"
 
 [dependency-groups]
 dev = [
-    "pytest>=9.0.2",
-    "pytest-cov>=7.0.0",
-    "ruff>=0.15.15",
-    "ty>=0.0.34",
+  "pytest>=9.0.2",
+  "pytest-cov>=7.0.0",
+  "ruff>=0.15.15",
+  "ty>=0.0.34",
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
-pythonpath = ["scripts", "tasks"]
+testpaths = [
+  "tests",
+]
+pythonpath = [
+  "scripts",
+  "tasks",
+]
 addopts = "--durations=5 --durations-min=0.0 --tb=short --strict-markers"
 filterwarnings = [
-    "ignore:Dirty template changes included automatically:copier._vcs.DirtyLocalWarning",
+  "ignore:Dirty template changes included automatically:copier._vcs.DirtyLocalWarning",
 ]
 
 [tool.ty.environment]
 python-version = "3.12"
-extra-paths = ["scripts", "tasks"]
+extra-paths = [
+  "scripts",
+  "tasks",
+]
 
 [tool.ruff]
 line-length = 120
@@ -60,32 +83,39 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = [
-    "E",    # pycodestyle errors
-    "W",    # pycodestyle warnings
-    "F",    # Pyflakes
-    "I",    # isort
-    "Q",    # flake8-quotes
-    "B",    # flake8-bugbear
-    "C4",   # flake8-comprehensions
-    "C90",  # mccabe complexity
-    "SIM",  # flake8-simplify
-    "DTZ",  # flake8-datetimez
-    "ARG",  # unused arguments
-    "PLE",  # Pylint errors
-    "PLW",  # Pylint warnings
-    "PLC",  # Pylint conventions
-    "UP",   # pyupgrade
-    "S",    # flake8-bandit
+  "E",   # pycodestyle errors
+  "W",   # pycodestyle warnings
+  "F",   # Pyflakes
+  "I",   # isort
+  "Q",   # flake8-quotes
+  "B",   # flake8-bugbear
+  "C4",  # flake8-comprehensions
+  "C90", # mccabe complexity
+  "SIM", # flake8-simplify
+  "DTZ", # flake8-datetimez
+  "ARG", # unused arguments
+  "PLE", # Pylint errors
+  "PLW", # Pylint warnings
+  "PLC", # Pylint conventions
+  "UP",  # pyupgrade
+  "S",   # flake8-bandit
 ]
 ignore = [
-    "E501",  # line-too-long (formatter handles wrapping, but may exceed limit)
+  "E501", # line-too-long (formatter handles wrapping, but may exceed limit)
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = ["S101", "S105", "S106", "S603"]
+"tests/**/*.py" = [
+  "S101",
+  "S105",
+  "S106",
+  "S603",
+]
 
 [tool.ruff.lint.isort]
-known-first-party = ["tests"]
+known-first-party = [
+  "tests",
+]
 
 [tool.ruff.format]
 quote-style = "double"

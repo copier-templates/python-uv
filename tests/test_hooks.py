@@ -43,6 +43,7 @@ FILE_FIXER_IDS = {
     "trailing-whitespace",
     "ruff-check",
     "ruff-format",
+    "taplo-format",
 }
 
 
@@ -94,3 +95,13 @@ def test_prek_update_enforces_cooldown_days():
     """`prek update` must hold new hook revs back for a release-age cooldown (supply-chain guard)."""
     cooldown_days = _prek_config()["update"]["cooldown_days"]
     assert isinstance(cooldown_days, int) and 1 <= cooldown_days <= 255, "cooldown_days must be 1-255 to be enabled"
+
+
+def test_default_stages_is_pre_commit_only():
+    """Hooks without explicit `stages` must run once (pre-commit), not on every installed shim.
+
+    Regression: without `default_stages`, prek runs every unscoped hook on the
+    commit-msg shim too, so `git commit` executed the whole suite twice (and
+    `git push` would re-run it a third time at pre-push).
+    """
+    assert _prek_config().get("default_stages") == ["pre-commit"]

@@ -6,6 +6,7 @@ gum = "2.0.2"
 prek = "0.5.6"
 python = "3.12"
 shellcheck = "0.11"
+taplo = "0.10.0"
 uv = "0.11"
 
 [env]
@@ -63,7 +64,12 @@ run = "uv run ty check"
 
 [tasks.lint]
 description = "Run all linters (Python + types + shell + workflows)"
-depends = ["lint:python", "lint:types", "lint:shell", "lint:workflows"]
+depends = [
+  "lint:python",
+  "lint:types",
+  "lint:shell",
+  "lint:workflows",
+]
 
 [tasks.format]
 description = "Format code"
@@ -75,7 +81,10 @@ run = "uv run ruff format --check ."
 
 [tasks.fix]
 description = "Autofix Python lint and formatting (ordered)"
-run = [{ task = "fix:python" }, { task = "format" }]
+run = [
+  { task = "fix:python" },
+  { task = "format" },
+]
 
 [tasks."test:unit"]
 description = "Run template validation tests"
@@ -98,7 +107,10 @@ fi
 
 [tasks.test]
 description = "Run all tests"
-depends = ["test:unit", "test:integration"]
+depends = [
+  "test:unit",
+  "test:integration",
+]
 
 [tasks.hooks]
 description = "Run all prek hooks"
@@ -111,20 +123,41 @@ run = "prek update"
 [tasks.ci]
 description = "Run CI checks (ordered)"
 env = { CI = "true" }
-run = [{ task = "lint" }, { task = "format:check" }, { task = "hooks" }, { task = "test:unit" }, { task = "check:version-tag" }]
+run = [
+  { task = "lint" },
+  { task = "format:check" },
+  { task = "hooks" },
+  { task = "test:unit" },
+  { task = "check:version-tag" },
+]
 
 [tasks."ci:full"]
 description = "Full local gate, mirrors GitHub Actions"
 env = { CI = "true" }
-run = [{ task = "lint" }, { task = "format:check" }, { task = "hooks" }, { task = "test" }, { task = "check:version-tag" }]
+run = [
+  { task = "lint" },
+  { task = "format:check" },
+  { task = "hooks" },
+  { task = "test" },
+  { task = "check:version-tag" },
+]
 
 [tasks.doctor]
 description = "Diagnose toolchain"
-run = ["mise ls", "mise doctor", "uv --version", "prek --version"]
+run = [
+  "mise ls",
+  "mise doctor",
+  "uv --version",
+  "prek --version",
+]
 
 [tasks.bootstrap]
 description = "First-run setup for humans and agents (trust + install + doctor)"
-run = ["mise trust", { task = "install" }, { task = "doctor" }]
+run = [
+  "mise trust",
+  { task = "install" },
+  { task = "doctor" },
+]
 
 [tasks."ci:docker"]
 description = "Run GitHub test job locally in Docker (requires Docker)"

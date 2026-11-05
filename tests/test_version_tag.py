@@ -46,9 +46,9 @@ def test_check_script_help_exits_zero():
 
 
 def test_prek_declares_pre_push_version_tag_hook():
-    text = (TEMPLATE_ROOT / "templates" / "prek.toml").read_text()
-    assert 'stages = ["pre-push"]' in text
-    assert "check-version-tag" in text
+    config = load_toml(TEMPLATE_ROOT / "templates" / "prek.toml")
+    hooks = {hook["id"]: hook for repo in config["repos"] for hook in repo["hooks"]}
+    assert hooks["check-version-tag"].get("stages") == ["pre-push"]
 
 
 def test_mise_tasks_expose_check_version_tag():
