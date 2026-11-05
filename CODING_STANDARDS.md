@@ -13,7 +13,7 @@ Root `prek.toml`, `cliff.toml`, `.editorconfig` and `scripts/release.sh` are sym
 
 `mise.toml` and generated projects expose the same core task names, pinned as `TASK_CONTRACT` in `tests/test_sync.py`. Maintenance tasks such as `update:python-versions` stay in root `mise.toml`. Generated projects ship no agent guidance; their `mise.toml` task contract is their interface.
 
-Verbatim payload files (copied unprocessed, never containing Jinja): `templates/prek.toml`, `templates/.editorconfig`, `templates/.github/workflows/*.yml`, `templates/cliff.toml`, `templates/scripts/release.sh`. Keep this list in sync with the actual non-`.jinja` files under `templates/` (a regression test enforces it). `templates/licenses/` partials are Jinja includes, not verbatim copies.
+Verbatim payload files (copied unprocessed, never containing Jinja): `templates/prek.toml`, `templates/.editorconfig`, `templates/.github/workflows/*.yml`, `templates/cliff.toml`, `templates/scripts/release.sh`, `templates/scripts/check-version-tag.sh`. Keep this list in sync with the actual non-`.jinja` files under `templates/` (a regression test enforces it). `templates/licenses/` partials are Jinja includes, not verbatim copies.
 
 ## Shell
 
@@ -42,4 +42,5 @@ Use Conventional Commits (`feat:`, `fix:`, `chore(deps):`), enforced by the `com
 | `mise run test:unit`                           | Template validation tests (`tests/`)                           |
 | `mise run test:integration`                    | Integration tests (`tests/integration/`, skips when absent)    |
 | `mise run test`                                | Aggregator: `test:unit` + `test:integration`                   |
-| `mise run ci`                                  | Pre-push gate: `lint` + `format:check` + `hooks` + `test:unit` |
+| `mise run ci`                                  | Pre-push gate: `lint` + `format:check` + `hooks` + `test:unit` + `check:version-tag` |
+| `mise run check:version-tag`                 | Block push when `pyproject.toml` version differs from latest tag |
