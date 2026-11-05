@@ -57,9 +57,13 @@ shellcheck -x "${files[@]}"
 description = "Lint GitHub Actions workflows with actionlint"
 run = "actionlint .github/workflows/*.yml templates/.github/workflows/*.yml"
 
+[tasks."lint:types"]
+description = "Type-check Python with ty"
+run = "uv run ty check"
+
 [tasks.lint]
-description = "Run all linters (Python + shell + workflows)"
-depends = ["lint:python", "lint:shell", "lint:workflows"]
+description = "Run all linters (Python + types + shell + workflows)"
+depends = ["lint:python", "lint:types", "lint:shell", "lint:workflows"]
 
 [tasks.format]
 description = "Format code"

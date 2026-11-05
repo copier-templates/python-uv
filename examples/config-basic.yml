@@ -9,7 +9,7 @@ project_name: sample_project
 project_description: "Sample project generated via Copier non-interactively"
 author_name: Test User
 author_email: test@test.com
-python_version: "3.11"
+python_version: "3.12"
 production_deps: ["httpx[http2]"]
 # pytest, pytest-cov and ruff are always installed; list extras here
 extra_dev_deps: []

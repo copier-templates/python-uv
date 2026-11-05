@@ -99,7 +99,7 @@ different setup; keep the `[act-local]` prefix so such steps are recognizable.
 
 `scripts/update_python_versions.py` refreshes the `python_version.choices`
 mapping in `copier.yaml` from <https://endoflife.date/api/python.json>. It keeps
-released CPython 3.x cycles at or above 3.11 (cycles without a `latest` release
+released CPython 3.x cycles at or above 3.12 (cycles without a `latest` release
 are skipped) and writes them newest first.
 
 The choices live between the marker comments
@@ -111,7 +111,7 @@ the file untouched.
 
 The script also refuses to write (non-zero exit, file untouched) when the
 refresh would drop the question's current `default` version from the choices,
-for example after 3.11 reaches end of life. It reads the first `default:` line
+for example after 3.12 reaches end of life. It reads the first `default:` line
 after the end marker, which must be a quoted `X.Y` version; if that line is
 missing or malformed, the script fails the same way. Change the default in
 `copier.yaml` first, then rerun the script.

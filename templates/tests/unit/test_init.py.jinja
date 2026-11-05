@@ -1,6 +1,8 @@
 """Test the main application entry point."""
 
 {% if is_app -%}
+import runpy
+
 from main import main
 {% elif is_lib -%}
 from {{module_name}} import hello
@@ -32,5 +34,13 @@ class TestMainFunction:
         """Test that main function returns None."""
         result = main()
         assert result is None
+{%- if is_app %}
+
+    def test_script_entrypoint_runs_main(self, capsys) -> None:
+        """Test that executing main.py as a script runs the __main__ guard."""
+        runpy.run_module("main", run_name="__main__")
+
+        assert "Hello from {{project_name}}!" in capsys.readouterr().out
+{%- endif %}
 {%- endif -%}
 {{ "\n" -}}

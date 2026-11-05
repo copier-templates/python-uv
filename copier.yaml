@@ -19,16 +19,15 @@ project_type:
 
 python_version:
     type: str
-    help: Which Python version should the project target? (3.11 or newer)
+    help: Which Python version should the project target? (3.12 or newer)
     choices:
         # python-version-choices: begin (managed by scripts/update_python_versions.py, do not edit)
         "3.15": "3.15"
         "3.14": "3.14"
         "3.13": "3.13"
         "3.12": "3.12"
-        "3.11": "3.11"
         # python-version-choices: end
-    default: "3.11"
+    default: "3.12"
 
 module_name:
     type: str

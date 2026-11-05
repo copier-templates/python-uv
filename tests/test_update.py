@@ -43,10 +43,10 @@ def test_update_restores_python_version_for_legacy_project(git_template_repo: Pa
         run_update(str(project), defaults=True, overwrite=True, unsafe=True)
 
     restored = answers_path.read_text()
-    assert re.search(PYTHON_VERSION_ANSWER_LINE.format(version=r"3\.11"), restored), (
+    assert re.search(PYTHON_VERSION_ANSWER_LINE.format(version=r"3\.12"), restored), (
         f"copier update must restore the python_version answer:\n{restored}"
     )
-    assert mise_tools(project)["python"] == "3.11", "updated project must pin the default Python in mise.toml"
+    assert mise_tools(project)["python"] == "3.12", "updated project must pin the default Python in mise.toml"
     assert UPDATE_MARKER in (project / "README.md").read_text(), (
         "copier update must apply the v1.0.1 template change to README.md"
     )

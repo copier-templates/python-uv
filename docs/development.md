@@ -4,7 +4,7 @@ This guide covers local development setup and workflow for the Copier template p
 
 ## Prerequisites
 
-- Python 3.11 or newer
+- Python 3.12 or newer
 - Git
 - uv (recommended) or pip/pipx
 

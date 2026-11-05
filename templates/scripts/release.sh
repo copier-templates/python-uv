@@ -131,8 +131,8 @@ main() {
   need_cmd git-cliff "Install it: mise install"
   need_cmd uv "Install it: mise install"
   need_cmd python "Install it: mise install"
-  python -c 'import sys, tomllib; sys.exit(0 if sys.version_info >= (3, 11) else 1)' 2>/dev/null \
-    || die "'python' must be 3.11+ (tomllib). Run via 'mise run release'."
+  python -c 'import sys, tomllib; sys.exit(0 if sys.version_info >= (3, 12) else 1)' 2>/dev/null \
+    || die "'python' must be 3.12+ (tomllib). Run via 'mise run release'."
 
   # 2. Current version + latest tag (fresh repos may have no tags yet).
   local current_version last_tag has_tags

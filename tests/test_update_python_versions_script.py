@@ -28,7 +28,7 @@ python_version:
         {BEGIN_MARKER}
         "3.10": "3.10"
         {END_MARKER}
-    default: "3.11"
+    default: "3.12"
 
 github_integration:
     type: bool
@@ -46,7 +46,7 @@ RELEASE_RECORDS = [
     {"cycle": "3.15", "latest": ""},
     {"cycle": "3.12", "latest": "3.12.7"},
 ]
-EXPECTED_VERSIONS = ["3.14", "3.13", "3.12", "3.11"]
+EXPECTED_VERSIONS = ["3.14", "3.13", "3.12"]
 
 
 def _serve(monkeypatch: pytest.MonkeyPatch, records: list[dict[str, Any]]) -> None:
@@ -83,7 +83,7 @@ def test_update_copier_yaml_replaces_the_managed_block():
 
     parsed = yaml.safe_load(updated)
     assert list(parsed["python_version"]["choices"]) == EXPECTED_VERSIONS
-    assert parsed["python_version"]["default"] == "3.11", "sibling keys must survive the rewrite"
+    assert parsed["python_version"]["default"] == "3.12", "sibling keys must survive the rewrite"
     assert parsed["project_type"]["default"] == "package", "surrounding questions must survive the rewrite"
     assert update_copier_yaml(updated, EXPECTED_VERSIONS) == updated, "update must be idempotent"
 
@@ -108,12 +108,12 @@ def test_main_rewrites_the_target_file(monkeypatch: pytest.MonkeyPatch, tmp_path
 def test_main_rejects_missing_required_choice(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     """A rewrite that orphans `default` must be refused, leaving the file untouched.
 
-    Upstream dropping the `3.11` cycle would otherwise rewrite `choices` to
-    `3.14`/`3.13`/`3.12` while `default` stays `3.11` — an invalid Copier question.
+    Upstream dropping the `3.12` cycle would otherwise rewrite `choices` to
+    `3.14`/`3.13` while `default` stays `3.12` — an invalid Copier question.
     """
     target = tmp_path / "copier.yaml"
     target.write_text(SAMPLE_COPIER_YAML)
-    _serve(monkeypatch, [record for record in RELEASE_RECORDS if record["cycle"] != "3.11"])
+    _serve(monkeypatch, [record for record in RELEASE_RECORDS if record["cycle"] != "3.12"])
 
     assert _run_main(monkeypatch, target) != 0
     assert target.read_text() == SAMPLE_COPIER_YAML
