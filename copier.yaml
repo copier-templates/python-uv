@@ -156,13 +156,7 @@ verify_ci:
 _min_copier_version: "9.0.0"
 _templates_suffix: .jinja
 _subdirectory: templates
-_preserve:
-    - ".copier-answers.yml"
 _envops:
-    block_start_string: "{%"
-    block_end_string: "%}"
-    variable_start_string: "{{"
-    variable_end_string: "}}"
     undefined: "jinja2.StrictUndefined"
 
 _exclude:
@@ -178,20 +172,14 @@ _tasks:
     - ["uv", "python", "install", '{{ python_version }}']
     - ["uv", "sync"]
     - command: ["mise", "trust"]
-    - command: >-
-        if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then git add -A && (git diff --cached --quiet || git commit --no-verify -m 'chore: scaffold from template'); else git init .; git add -A && (git diff --cached --quiet || git commit --no-verify -m 'Init commit'); fi
-      when: "{{ _copier_operation == 'copy' }}"
-    - command: >-
-        if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then git add -A && (git diff --cached --quiet || git commit --no-verify -m 'chore: update from template'); fi
-      when: "{{ _copier_operation == 'update' }}"
-    - command: >-
-        if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then mise run install; fi
+    - command:
+          - "{{ _copier_python }}"
+          - "{{ _copier_conf.src_path }}/tasks/lifecycle.py"
+          - "{{ _copier_operation }}"
+          - "--verify-ci={{ verify_ci }}"
       when: "{{ _copier_operation in ['copy', 'update'] }}"
-    - command: >-
-        if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then mise run ci; fi
-      when: "{{ _copier_operation in ['copy', 'update'] and with_pytest and with_ruff }}"
 
 _message_after_copy: |
-    Your project "{{ project_name }}" was created and verified (`mise run install` + `mise run ci` passed).
+    Your project "{{ project_name }}" was created{% if verify_ci %} and verified (`mise run install` + `mise run ci` passed){% else %} (`mise run install` passed){% endif %}.
     Next steps:
       cd {{ _folder_name }}
