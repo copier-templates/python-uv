@@ -4,6 +4,8 @@ project_name:
     validator: >-
         {% if not project_name.replace('_', '').replace('-', '').isalnum() %}
         Project name must be alphanumeric with underscores/dashes only
+        {% elif project_name[0].isdigit() %}
+        Project name must not start with a digit
         {% endif %}
 
 project_type:
