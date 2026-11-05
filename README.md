@@ -57,7 +57,7 @@ The following tools must be installed:
    ```bash
    copier copy --data-file examples/config-basic.yml /path/to/copier-template /path/to/your-repo
    ```
-   You can duplicate and modify that file to create variants (e.g., `data-with-ruff.yml`).
+   You can duplicate and modify that file to create variants (e.g., `data-with-license.yml`).
 
    **Note:** This template uses conditional tasks (see [Tasks Behavior](#-tasks-behavior-with-different-copier-commands)), which require the `--trust` flag:
    ```bash
@@ -88,7 +88,7 @@ This template uses **templated `_exclude`** to manage optional features (LICENSE
 Exclusions are evaluated during rendering, **before** tasks run. This means:
 - Optional files are never created when excluded
 - `uv sync` installs the project and generates or refreshes `uv.lock`
-- `_tasks` run after rendering: `uv python install`, `uv sync`, `mise trust`, then `tasks/lifecycle.py` for the Git commit and `mise run install` (plus `mise run ci` when the project has pytest and ruff)
+- `_tasks` run after rendering: `uv python install`, `uv sync`, `mise trust`, then `tasks/lifecycle.py` for the Git commit and `mise run install` and `mise run ci`
 
 #### Initial Project Generation (`copier copy`)
 When you generate a new project with conditions set:

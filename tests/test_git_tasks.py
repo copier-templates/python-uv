@@ -66,7 +66,7 @@ def _add_file(dst: Path) -> None:
 def test_copy_in_plain_directory_inits_repo_and_verifies_after_init_commit(plain_dir: Path):
     mise = RecordingMise(plain_dir)
 
-    lifecycle.run("copy", plain_dir, verify_ci=True, mise=mise)
+    lifecycle.run("copy", plain_dir, mise=mise)
 
     assert _subjects(plain_dir) == [lifecycle.INIT_MESSAGE]
     assert git(plain_dir, "ls-files").stdout.split() == ["README.md"]
@@ -81,7 +81,7 @@ def test_work_tree_changes_are_committed_on_top_of_existing_history(work_tree: P
     seed = _head(work_tree)
     _add_file(work_tree)
 
-    lifecycle.run(operation, work_tree, verify_ci=False, mise=RecordingMise(work_tree))
+    lifecycle.run(operation, work_tree, mise=RecordingMise(work_tree))
 
     assert _subjects(work_tree) == [message, SEED_MESSAGE]
     assert git(work_tree, "rev-parse", "HEAD~1").stdout.strip() == seed
@@ -92,7 +92,7 @@ def test_work_tree_changes_are_committed_on_top_of_existing_history(work_tree: P
 def test_nothing_to_commit_creates_no_commit(work_tree: Path, operation: str):
     seed = _head(work_tree)
 
-    lifecycle.run(operation, work_tree, verify_ci=False, mise=RecordingMise(work_tree))
+    lifecycle.run(operation, work_tree, mise=RecordingMise(work_tree))
 
     assert _head(work_tree) == seed
     assert _subjects(work_tree) == [SEED_MESSAGE]
@@ -101,7 +101,7 @@ def test_nothing_to_commit_creates_no_commit(work_tree: Path, operation: str):
 def test_update_outside_work_tree_does_nothing(plain_dir: Path):
     mise = RecordingMise(plain_dir)
 
-    lifecycle.run("update", plain_dir, verify_ci=True, mise=mise)
+    lifecycle.run("update", plain_dir, mise=mise)
 
     assert not (plain_dir / ".git").exists()
     assert mise.calls == []
@@ -114,38 +114,21 @@ def test_commits_bypass_failing_hooks(work_tree: Path, operation: str):
     hook.chmod(0o755)
     _add_file(work_tree)
 
-    lifecycle.run(operation, work_tree, verify_ci=False, mise=RecordingMise(work_tree))
+    lifecycle.run(operation, work_tree, mise=RecordingMise(work_tree))
 
     assert len(_subjects(work_tree)) == 2
 
 
 @pytest.mark.parametrize(
-    ("verify_ci", "expected"),
-    [(False, [["run", "install"]]), (True, [["run", "install"], ["run", "ci"]])],
-    ids=["no-ci", "ci"],
-)
-def test_verification_runs_install_then_ci_only_when_requested(
-    work_tree: Path, verify_ci: bool, expected: list[list[str]]
-):
-    _add_file(work_tree)
-    mise = RecordingMise(work_tree)
-
-    lifecycle.run("copy", work_tree, verify_ci=verify_ci, mise=mise)
-
-    assert mise.calls == expected
-
-
-@pytest.mark.parametrize(
-    ("argv", "operation", "verify_ci"),
-    [(["copy", "--verify-ci=True"], "copy", True), (["update"], "update", False)],
-    ids=["copy-ci", "update-default-no-ci"],
+    ("argv", "operation"),
+    [(["copy"], "copy"), (["update"], "update")],
 )
 def test_main_dispatches_to_run_in_current_directory(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, argv: list[str], operation: str, verify_ci: bool
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, argv: list[str], operation: str
 ):
     seen: dict[str, Any] = {}
-    monkeypatch.setattr(lifecycle, "run", lambda op, dst, **kwargs: seen.update(op=op, dst=dst, ci=kwargs["verify_ci"]))
+    monkeypatch.setattr(lifecycle, "run", lambda op, dst, **_kwargs: seen.update(op=op, dst=dst))
     monkeypatch.chdir(tmp_path)
 
     assert lifecycle.main(argv) == 0
-    assert (seen["op"], seen["dst"].resolve(), seen["ci"]) == (operation, tmp_path.resolve(), verify_ci)
+    assert (seen["op"], seen["dst"].resolve()) == (operation, tmp_path.resolve())

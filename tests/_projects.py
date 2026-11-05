@@ -139,7 +139,6 @@ BASE_DATA: dict[str, object] = {
     "author_name": "Test User",
     "author_email": "test@test.com",
     "production_deps": ["httpx[http2]"],
-    "dev_deps": ["pytest", "pytest-cov"],
     "github_integration": True,
 }
 
@@ -177,32 +176,13 @@ def run_copy_from(
 # Per-variant answers layered over BASE_DATA, rendered with `projects.render("<variant>")`.
 VARIANTS: dict[str, dict[str, object]] = {
     "basic": {"project_name": "example_proj"},
-    "ruff": {"project_name": "ruff_proj", "production_deps": [], "dev_deps": ["pytest", "pytest-cov", "ruff"]},
-    # Ruff without pytest: pytest-gated sections must not render.
-    "ruff-only": {"project_name": "ruff_only_proj", "production_deps": [], "dev_deps": ["ruff"]},
-    # Pytest without pytest-cov: coverage-gated sections must not render.
-    "pytest-no-cov": {"project_name": "pytest_nocov_proj", "production_deps": [], "dev_deps": ["pytest"]},
-    # Specifiers, extras and non-canonical spelling (PEP 503) must still enable the tooling.
-    "pinned-dev-deps": {
-        "project_name": "pinned_deps_proj",
+    "extra-dev-deps": {
+        "project_name": "extra_deps_proj",
         "production_deps": [],
-        "dev_deps": ["Ruff>=0.6", "pytest[toml]>=8", "pytest_cov==6.0"],
+        "extra_dev_deps": ["hypothesis>=6"],
     },
-    "python313": {
-        "project_name": "py313_proj",
-        "python_version": "3.13",
-        "production_deps": [],
-        "dev_deps": ["pytest", "pytest-cov", "ruff"],
-    },
+    "python313": {"project_name": "py313_proj", "python_version": "3.13", "production_deps": []},
     "license": {"project_name": "license_proj", "include_license": True, "license_type": "mit"},
-    # Only variant combining a LICENSE with ruff, so `mise run ci` hooks run against a rendered LICENSE.
-    "license-ruff": {
-        "project_name": "license_ruff_proj",
-        "include_license": True,
-        "license_type": "mit",
-        "production_deps": [],
-        "dev_deps": ["pytest", "pytest-cov", "ruff"],
-    },
     "github": {"project_name": "github_proj", "github_integration": True},
     "no-github": {"project_name": "no_github_proj", "github_integration": False},
     "hyphenated-package": {"project_name": "my-app", "project_type": "package"},
@@ -212,9 +192,7 @@ VARIANTS: dict[str, dict[str, object]] = {
 
 # Variants rendered with `copier.yaml` `_tasks` (a full `uv sync` each): one proof per project type plus
 # those whose tests assert task outcomes. All others render with `skip_tasks=True` (files only).
-TASK_VARIANTS: frozenset[str] = frozenset(
-    {"basic", "ruff", "pinned-dev-deps", "python313", "license-ruff", "app", "lib"}
-)
+TASK_VARIANTS: frozenset[str] = frozenset({"basic", "python313", "license", "app", "lib"})
 
 
 class ProjectRegistry:

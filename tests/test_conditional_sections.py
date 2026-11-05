@@ -1,4 +1,4 @@
-"""Conditional README sections, pyproject fields and mise.toml task graphs by render variant."""
+"""Rendered pyproject fields, README sections and mise.toml task graph: always-on tooling and real variance."""
 
 from __future__ import annotations
 
@@ -21,23 +21,34 @@ BASE_TASKS = {
     "release",
     "clean",
     "clean:all",
+    "lint:python",
+    "fix:python",
+    "format",
+    "format:check",
+    "fix",
+    "ci",
+    "ci:full",
 }
-RUFF_TASKS = {"lint:python", "fix:python", "format", "format:check", "fix", "ci", "ci:full"}
 
 
-@pytest.mark.parametrize(
-    ("variant", "snippet", "present"),
-    [
-        ("basic", "Running Tests", True),
-        ("ruff", "Code Quality", True),
-        ("basic", "Code Quality", False),
-        ("basic", "img.shields.io/badge/mise", True),
-        ("basic", "mise.jdx.dev", True),
-    ],
-)
-def test_readme_sections_follow_dev_deps(projects: ProjectRegistry, variant: str, snippet: str, present: bool):
-    readme = (projects.render(variant) / "README.md").read_text()
-    assert (snippet in readme) is present
+@pytest.mark.parametrize("snippet", ["Running Tests", "Code Quality", "img.shields.io/badge/mise", "mise.jdx.dev"])
+def test_readme_always_documents_tests_and_quality(projects: ProjectRegistry, snippet: str):
+    assert snippet in (projects.render("basic") / "README.md").read_text()
+
+
+def test_default_render_always_includes_pytest_cov_and_ruff_tooling(projects: ProjectRegistry):
+    project = projects.render("basic")
+
+    assert pyproject(project)["dependency-groups"]["dev"] == ["pytest", "pytest-cov", "ruff"]
+    tool = pyproject(project)["tool"]
+    assert {"pytest", "coverage", "ruff"} <= set(tool)
+    assert any(opt.startswith("--cov=") for opt in tool["pytest"]["ini_options"]["addopts"])
+
+
+def test_extra_dev_deps_are_appended_to_the_always_on_tooling(projects: ProjectRegistry):
+    dev = pyproject(projects.render("extra-dev-deps"))["dependency-groups"]["dev"]
+
+    assert dev == ["pytest", "pytest-cov", "ruff", "hypothesis>=6"]
 
 
 def test_pyproject_preserves_httpx_http2_production_dependency(projects: ProjectRegistry):
@@ -61,7 +72,7 @@ def test_rendered_license_is_hook_clean(projects: ProjectRegistry):
     so `end-of-file-fixer` rewrote LICENSE and failed `mise run ci`. The
     fixture copy already runs ci; these assertions pinpoint the file.
     """
-    project = projects.render("license-ruff")
+    project = projects.render("license")
     content = (project / "LICENSE").read_bytes()
     assert content, "LICENSE must not be empty"
     assert content.endswith(b"\n") and not content.endswith(b"\n\n"), (
@@ -72,26 +83,17 @@ def test_rendered_license_is_hook_clean(projects: ProjectRegistry):
     assert not offenders, f"LICENSE has trailing whitespace on lines {offenders}"
 
 
-@pytest.mark.parametrize(
-    ("variant", "tasks", "lint_refs"),
-    [
-        ("ruff", BASE_TASKS | RUFF_TASKS, ["lint:python", "lint:shell", "lint:workflows"]),
-        ("basic", BASE_TASKS, ["lint:shell", "lint:workflows"]),
-    ],
-)
-def test_mise_toml_task_graph_follows_ruff(
-    projects: ProjectRegistry, variant: str, tasks: set[str], lint_refs: list[str]
-):
-    data = mise_toml(projects.render(variant))
-    assert set(data["tasks"]) == tasks
-    assert refs(data["tasks"]["lint"]) == lint_refs
+def test_mise_toml_task_graph_is_always_complete(projects: ProjectRegistry):
+    data = mise_toml(projects.render("basic"))
+    assert set(data["tasks"]) == BASE_TASKS
+    assert refs(data["tasks"]["lint"]) == ["lint:python", "lint:shell", "lint:workflows"]
     assert refs(data["tasks"]["test"]) == ["test:unit", "test:integration"]
     assert data["env"]["_"]["file"] == ".env"
 
 
 def test_mise_toml_ci_runs_ordered_readonly_steps(projects: ProjectRegistry):
     """CI must run lint, format:check, hooks, test:unit in order via run steps."""
-    tasks = mise_toml(projects.render("ruff"))["tasks"]
+    tasks = mise_toml(projects.render("basic"))["tasks"]
     assert refs(tasks["ci"]) == ["lint", "format:check", "hooks", "test:unit"]
     assert refs(tasks["ci:full"]) == ["lint", "format:check", "hooks", "test"]
     assert tasks["ci"]["env"]["CI"] == tasks["ci:full"]["env"]["CI"] == "true"
@@ -99,7 +101,7 @@ def test_mise_toml_ci_runs_ordered_readonly_steps(projects: ProjectRegistry):
 
 def test_mise_toml_lint_is_check_only_and_fix_task_mutates(projects: ProjectRegistry):
     """Lint must be check-only for CI; mutation lives in fix tasks."""
-    tasks = mise_toml(projects.render("ruff"))["tasks"]
+    tasks = mise_toml(projects.render("basic"))["tasks"]
     assert tasks["lint:python"]["run"] == "uv run ruff check ."
     assert "ruff check --fix" in tasks["fix:python"]["run"]
     assert tasks["format"]["run"] == "uv run ruff format ."
@@ -108,14 +110,14 @@ def test_mise_toml_lint_is_check_only_and_fix_task_mutates(projects: ProjectRegi
 
 def test_mise_toml_shell_lint_covers_all_scripts(projects: ProjectRegistry):
     """Shell lint task must discover *.sh files and run shellcheck on them."""
-    shell_run = mise_toml(projects.render("ruff"))["tasks"]["lint:shell"]["run"]
+    shell_run = mise_toml(projects.render("basic"))["tasks"]["lint:shell"]["run"]
     assert "shellcheck" in shell_run
     assert "*.sh" in shell_run
 
 
 def test_mise_toml_uses_modern_bash(projects: ProjectRegistry):
     """Rendered mise tasks must use modern bash (`[[ ]]`, `(( ))`), not legacy POSIX tests."""
-    content = (projects.render("ruff") / "mise.toml").read_text()
+    content = (projects.render("basic") / "mise.toml").read_text()
     assert "#!/usr/bin/env bash" in content
     assert "((" in content
     assert "[[ -d .github/workflows ]]" in content
@@ -130,7 +132,7 @@ def test_mise_toml_agent_entrypoints(projects: ProjectRegistry):
     environment sets `UV_NO_DEV`, leaving `.venv` without pytest so `mise run test`
     fails with `Failed to spawn: pytest`. The explicit `--dev` flag overrides it.
     """
-    tasks = mise_toml(projects.render("ruff"))["tasks"]
+    tasks = mise_toml(projects.render("basic"))["tasks"]
     assert refs(tasks["bootstrap"]) == ["install", "doctor"]
     assert tasks["bootstrap"]["run"][0] == "mise trust"
     assert "uv sync --dev" in tasks["install"]["run"]
@@ -151,7 +153,7 @@ def test_mise_toml_workflows_lint_skips_without_github(projects: ProjectRegistry
 
 def test_pyproject_configures_ruff_rules_for_generated_projects(projects: ProjectRegistry):
     """Generated pyproject.toml should include the expanded Ruff config."""
-    lint = pyproject(projects.render("ruff"))["tool"]["ruff"]["lint"]
+    lint = pyproject(projects.render("basic"))["tool"]["ruff"]["lint"]
 
     assert {
         "E",
@@ -173,18 +175,18 @@ def test_pyproject_configures_ruff_rules_for_generated_projects(projects: Projec
     }.issubset(set(lint["select"]))
     assert lint["per-file-ignores"]["tests/unit/**/*.py"] == ["ARG001"]
     assert lint["per-file-ignores"]["tests/**/*.py"] == ["S101", "S105", "S106"]
-    assert lint["isort"]["known-first-party"] == ["ruff_proj"]
+    assert lint["isort"]["known-first-party"] == ["example_proj"]
 
 
 def test_pyproject_registers_markers_and_package_coverage(projects: ProjectRegistry):
     """Generated packaged projects should register markers and use source_pkgs coverage."""
-    tool = pyproject(projects.render("ruff"))["tool"]
+    tool = pyproject(projects.render("basic"))["tool"]
 
     assert tool["pytest"]["ini_options"]["markers"] == [
         "unit: marks tests as unit tests",
         "integration: marks tests as integration tests",
     ]
-    assert tool["coverage"]["run"]["source_pkgs"] == ["ruff_proj"]
+    assert tool["coverage"]["run"]["source_pkgs"] == ["example_proj"]
     assert "source" not in tool["coverage"]["run"]
 
 

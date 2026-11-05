@@ -37,7 +37,6 @@ if (( n == 0 )); then
 fi
 shellcheck -x "${files[@]}"
 """
-{%- if with_ruff %}
 
 [tasks."lint:python"]
 description = "Lint Python with Ruff (check-only)"
@@ -50,12 +49,6 @@ run = "uv run ruff check --fix ."
 [tasks.lint]
 description = "Run all linters (Python + shell + workflows)"
 depends = ["lint:python", "lint:shell", "lint:workflows"]
-{%- else %}
-
-[tasks.lint]
-description = "Run all linters (shell + workflows)"
-depends = ["lint:shell", "lint:workflows"]
-{%- endif %}
 
 [tasks."lint:workflows"]
 description = "Lint GitHub Actions workflows with actionlint"
@@ -69,7 +62,6 @@ else
   printf 'No workflows found, skipping.\n'
 fi
 """
-{%- if with_ruff %}
 
 [tasks.format]
 description = "Format code"
@@ -82,8 +74,6 @@ run = "uv run ruff format --check ."
 [tasks.fix]
 description = "Autofix Python lint and formatting (ordered)"
 run = [{ task = "fix:python" }, { task = "format" }]
-{%- endif %}
-{%- if with_pytest %}
 
 [tasks."test:unit"]
 description = "Run unit tests"
@@ -108,7 +98,6 @@ fi
 description = "Run all tests"
 depends = ["test:unit", "test:integration"]
 
-{%- if with_ruff %}
 [tasks.ci]
 description = "Run CI checks (ordered)"
 env = { CI = "true" }
@@ -118,8 +107,6 @@ run = [{ task = "lint" }, { task = "format:check" }, { task = "hooks" }, { task 
 description = "Full local gate, mirrors GitHub Actions"
 env = { CI = "true" }
 run = [{ task = "lint" }, { task = "format:check" }, { task = "hooks" }, { task = "test" }]
-{%- endif %}
-{%- endif %}
 
 [tasks.hooks]
 description = "Run all prek hooks"

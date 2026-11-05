@@ -32,8 +32,11 @@ EXCLUDED_PATHS = [
 
 @pytest.mark.parametrize("relpath", EXCLUDED_PATHS)
 def test_excluded_paths_are_absent(projects: ProjectRegistry, relpath: str):
-    """Copier may leave an empty directory behind, so an excluded directory must be absent or empty."""
-    path = projects.render("basic") / relpath
+    """Copier may leave an empty directory behind, so an excluded directory must be absent or empty.
+
+    Uses a files-only render: a task variant runs `mise run ci` in the project and legitimately creates `.pytest_cache`.
+    """
+    path = projects.render("github") / relpath
     assert not path.exists() or (path.is_dir() and not any(path.iterdir())), f"Excluded path present: {relpath}"
 
 

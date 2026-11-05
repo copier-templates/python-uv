@@ -61,7 +61,7 @@ def test_act_image_reference_is_canonical():
 
 def test_rendered_mise_has_release_task_and_gum(projects: ProjectRegistry):
     """Both mise.toml variants must pin gum and expose the release task."""
-    for project in (projects.render("basic"), projects.render("ruff")):
+    for project in (projects.render("basic"), projects.render("python313")):
         data = mise_toml(project)
         assert "gum" in data["tools"]
         assert "release" in data["tasks"]

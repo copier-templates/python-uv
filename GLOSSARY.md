@@ -21,7 +21,7 @@ Domain terms for this Copier template. Use them as written.
 : A value given for a question in `copier.yaml`. Recorded in `.copier-answers.yml` unless the question is a render fact.
 
 **Render fact**
-: A hidden `when: false` question whose value is computed from answers (for example `is_app`, `with_ruff`, `verify_ci`). Re-derived on every render; omitted from the answers file.
+: A hidden `when: false` question whose value is computed from answers (for example `is_app`, `is_lib`, `is_package`). Re-derived on every render; omitted from the answers file.
 
 **Render**
 : Copier producing a project from `templates/` and the answers. Tests render through `projects.render("<variant>")`.
@@ -33,7 +33,7 @@ Domain terms for this Copier template. Use them as written.
 : A variant listed in `TASK_VARIANTS`, rendered with `copier.yaml` `_tasks`. Other variants render with `skip_tasks=True`.
 
 **Lifecycle script**
-: `tasks/lifecycle.py`, run from `_tasks` after copy or update. Makes the Git commit or init and runs `mise run install` (and `mise run ci` when `verify_ci`).
+: `tasks/lifecycle.py`, run from `_tasks` after copy or update. Makes the Git commit or init and runs `mise run install` and `mise run ci`.
 
 **Task contract**
 : The mise task names that both root `mise.toml` and generated projects expose, pinned as `TASK_CONTRACT` in `tests/test_sync.py`.

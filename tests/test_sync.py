@@ -56,7 +56,7 @@ def test_workflow_files_stay_in_sync():
 
 def test_tool_pins_match_root_mise_toml(projects: ProjectRegistry):
     """Rendered `[tools]` equals root `[tools]` for every tool except `python`."""
-    rendered = mise_toml(projects.render("ruff"))["tools"]
+    rendered = mise_toml(projects.render("basic"))["tools"]
     root = load_toml(TEMPLATE_ROOT / "mise.toml")["tools"]
     rendered.pop("python")
     root.pop("python")
@@ -65,6 +65,6 @@ def test_tool_pins_match_root_mise_toml(projects: ProjectRegistry):
 
 def test_mise_task_contract(projects: ProjectRegistry):
     root_tasks = set(load_toml(TEMPLATE_ROOT / "mise.toml")["tasks"])
-    rendered_tasks = set(mise_toml(projects.render("ruff"))["tasks"])
+    rendered_tasks = set(mise_toml(projects.render("basic"))["tasks"])
     assert root_tasks >= TASK_CONTRACT, sorted(TASK_CONTRACT - root_tasks)
     assert rendered_tasks >= TASK_CONTRACT, sorted(TASK_CONTRACT - rendered_tasks)

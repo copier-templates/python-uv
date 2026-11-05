@@ -28,18 +28,15 @@ uv run python -c "from {{module_name}} import hello; print(hello())"
 
 ## Development
 
-{% if with_pytest %}
 ### Running Tests
 ```bash
 mise run test
 ```
-{% endif %}
-{% if with_ruff %}
+
 ### Code Quality
 ```bash
 mise run lint
 ```
-{% endif %}
 
 ### Changelog
 
@@ -67,9 +64,7 @@ main.py                    # Root application entrypoint
 {% else %}
 src/{{module_name}}/       # Main package
 {% endif %}
-{%- if with_pytest %}
 tests/unit/              # Unit tests
-{%- endif %}
 ```
 
 ## Notes

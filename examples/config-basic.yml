@@ -11,5 +11,5 @@ author_name: Test User
 author_email: test@test.com
 python_version: "3.11"
 production_deps: ["httpx[http2]"]
-# Include both pytest & ruff to show conditional README sections
-dev_deps: ["pytest", "pytest-cov", "ruff"]
+# pytest, pytest-cov and ruff are always installed; list extras here
+extra_dev_deps: []

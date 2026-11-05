@@ -8,7 +8,7 @@ import pytest
 from _projects import PYTHON_VERSION_ANSWER_LINE, ProjectRegistry, mise_tools, pyproject
 
 
-@pytest.mark.parametrize(("variant", "version"), [("ruff", "3.11"), ("python313", "3.13")])
+@pytest.mark.parametrize(("variant", "version"), [("basic", "3.11"), ("python313", "3.13")])
 def test_render_pins_selected_python_version(projects: ProjectRegistry, variant: str, version: str):
     """The question default (3.11) and an explicit answer drive every pin."""
     project = projects.render(variant)
