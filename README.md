@@ -76,8 +76,9 @@ The following tools must be installed:
    git status
    ```
 
-   The template runs `uv sync` after bootstrapping and commits the generated
-   `uv.lock` in the initial Git commit.
+   The template runs `uv sync` after rendering and commits the result,
+   including `uv.lock`: an `Init commit` in a new directory, or
+   `chore: scaffold from template` inside an existing repository.
 
 ### ⚠️ Tasks Behavior with Different Copier Commands
 
@@ -87,7 +88,7 @@ This template uses **templated `_exclude`** to manage optional features (LICENSE
 Exclusions are evaluated during rendering, **before** tasks run. This means:
 - Optional files are never created when excluded
 - `uv sync` installs the project and generates or refreshes `uv.lock`
-- Remaining `_tasks` (`uv sync`, `git init`, `mise trust`) run after rendering
+- `_tasks` run after rendering: `uv python install`, `uv sync`, `mise trust`, then `tasks/lifecycle.py` for the Git commit and `mise run install` (plus `mise run ci` when the project has pytest and ruff)
 
 #### Initial Project Generation (`copier copy`)
 When you generate a new project with conditions set:
@@ -165,13 +166,13 @@ If you need to disable GitHub integration after customizing `.github/`:
 | `examples/config-basic.yml` | Example data file passed with `--data-file` (excluded from rendered projects). |
 
 ### ⚙️ Internal Template Artifacts Not Copied
-Only `templates/` is copied into generated projects (`_subdirectory: templates` in `copier.yaml`). Helper folders (`examples/`, `tests/`, `docs/`, `scripts/`) stay outside `templates/` so consumer projects stay clean. License partials under `templates/licenses/` are excluded from copy via `_exclude`.
+Only `templates/` is copied into generated projects (`_subdirectory: templates` in `copier.yaml`). Helper folders (`examples/`, `tests/`, `docs/`, `scripts/`, `tasks/`) stay outside `templates/` so consumer projects stay clean. License partials under `templates/licenses/` are excluded from copy via `_exclude`.
 
 To create a new variant template from existing data file configuration:
 ```bash
 copier copy --data-file /path/to/config-basic.yml /path/to/template /dest
 ```
-For advanced configuration (tasks, migrations, multiple templates) see the Copier docs sections: tasks, migrations, applying multiple templates.
+For advanced configuration (tasks, multiple templates) see the Copier docs sections: tasks, migrations, applying multiple templates.
 
 ## ✏️ Customization
 
@@ -191,21 +192,13 @@ mise run test
 ### ⚡ Test Performance
 
 Tests use session-scoped fixtures for optimal performance:
-- **Session-scoped fixtures:** Generated projects created once per test session, reused across all test modules
-- **Module-scoped wrappers:** Clean test API with ~50% faster execution vs module scope alone
+- **Session-scoped registry:** `projects.render("<variant>")` renders each project once per test session, reused across all test modules
+- **Tasks only where they add coverage:** content-only variants render with `skip_tasks=True`
 - **All tests read-only:** No mutations to generated projects ensures fixture reuse is safe
 
 ### 📁 Test Files
 
-Test files are located in `tests/` folder.
-
-| File | Purpose |
-|------|---------|
-| `test_core_structure.py` | Validates required files, directories, and project structure |
-| `test_exclusions.py` | Ensures excluded files (`copier.yaml`, etc.) are not rendered |
-| `test_conditional_sections.py` | Tests conditional rendering based on dependencies (e.g., Ruff) |
-
-See `tests/conftest.py` for fixture definitions.
+Test files are located in `tests/`; [docs/architecture.md](docs/architecture.md#testing) describes each module. Fixtures live in `tests/conftest.py`, and the render variants and shared loaders in `tests/_projects.py`.
 
 ## 🔄 Prek Auto-Update
 
