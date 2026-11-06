@@ -10,6 +10,7 @@ BASE_TASKS = {
     "lint",
     "lint:shell",
     "lint:types",
+    "lint:deadcode",
     "test",
     "test:unit",
     "test:integration",
@@ -42,7 +43,13 @@ def test_readme_always_documents_tests_and_quality(projects: ProjectRegistry, sn
 def test_default_render_always_includes_pytest_cov_ruff_and_ty_tooling(projects: ProjectRegistry):
     project = projects.render("basic")
 
-    assert pyproject(project)["dependency-groups"]["dev"] == ["pytest>=9,<10", "pytest-cov", "ruff", "ty>=0.0.34"]
+    assert pyproject(project)["dependency-groups"]["dev"] == [
+        "pytest>=9,<10",
+        "pytest-cov",
+        "ruff",
+        "ty>=0.0.34",
+        "vulture>=2.16",
+    ]
     tool = pyproject(project)["tool"]
     assert {"pytest", "coverage", "ruff", "ty"} <= set(tool)
     assert any(opt.startswith("--cov=") for opt in tool["pytest"]["addopts"])
@@ -51,7 +58,7 @@ def test_default_render_always_includes_pytest_cov_ruff_and_ty_tooling(projects:
 def test_extra_dev_deps_are_appended_to_the_always_on_tooling(projects: ProjectRegistry):
     dev = pyproject(projects.render("extra-dev-deps"))["dependency-groups"]["dev"]
 
-    assert dev == ["pytest>=9,<10", "pytest-cov", "ruff", "ty>=0.0.34", "hypothesis>=6"]
+    assert dev == ["pytest>=9,<10", "pytest-cov", "ruff", "ty>=0.0.34", "vulture>=2.16", "hypothesis>=6"]
 
 
 def test_pytest_config_uses_native_table_without_ini_options(projects: ProjectRegistry):
@@ -115,7 +122,7 @@ def test_rendered_license_is_hook_clean(projects: ProjectRegistry):
 def test_mise_toml_task_graph_is_always_complete(projects: ProjectRegistry):
     data = mise_toml(projects.render("no-github"))
     assert set(data["tasks"]) == BASE_TASKS
-    assert refs(data["tasks"]["lint"]) == ["lint:python", "lint:types", "lint:shell"]
+    assert refs(data["tasks"]["lint"]) == ["lint:python", "lint:types", "lint:deadcode", "lint:shell"]
     assert refs(data["tasks"]["test"]) == ["test:unit", "test:integration"]
     assert data["env"]["_"]["file"] == ".env"
 
@@ -132,6 +139,7 @@ def test_mise_toml_lint_is_check_only_and_fix_task_mutates(projects: ProjectRegi
     """Lint must be check-only for CI; mutation lives in fix tasks."""
     tasks = mise_toml(projects.render("basic"))["tasks"]
     assert tasks["lint:python"]["run"] == "uv run ruff check ."
+    assert tasks["lint:deadcode"]["run"] == "uv run vulture"
     assert "ruff check --fix" in tasks["fix:python"]["run"]
     assert tasks["format"]["run"] == "uv run ruff format ."
     assert tasks["format:check"]["run"] == "uv run ruff format --check ."
@@ -170,7 +178,13 @@ def test_mise_toml_github_tasks_and_tools_are_gated(projects: ProjectRegistry):
     with_github = mise_toml(projects.render("github"))
     assert set(with_github["tasks"]) >= GITHUB_TASKS
     assert {"act", "actionlint"} <= set(with_github["tools"])
-    assert refs(with_github["tasks"]["lint"]) == ["lint:python", "lint:types", "lint:shell", "lint:workflows"]
+    assert refs(with_github["tasks"]["lint"]) == [
+        "lint:python",
+        "lint:types",
+        "lint:deadcode",
+        "lint:shell",
+        "lint:workflows",
+    ]
 
 
 def test_mise_toml_agent_entrypoints(projects: ProjectRegistry):
