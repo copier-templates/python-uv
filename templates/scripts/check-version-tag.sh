@@ -52,7 +52,11 @@ if [[ ! $current_version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
 fi
 
 # Newest reachable plain X.Y.Z tag by semver (git describe is recency, not max).
-mapfile -t tags < <(git -c color.ui=false tag --merged HEAD 2>/dev/null | grep -E --color=never '^[0-9]+\.[0-9]+\.[0-9]+$' || true)
+# Portable read loop: `mapfile` needs bash 4+, macOS ships bash 3.2.
+tags=()
+while IFS= read -r tag; do
+  tags+=("$tag")
+done < <(git -c color.ui=false tag --merged HEAD 2>/dev/null | grep -E --color=never '^[0-9]+\.[0-9]+\.[0-9]+$' || true)
 latest=""
 if (( ${#tags[@]} > 0 )); then
   latest="$(printf '%s\n' "${tags[@]}" | python -c 'import sys; print(sorted((tuple(map(int, l.strip().split("."))), l.strip()) for l in sys.stdin if l.strip())[-1][1])')" || {

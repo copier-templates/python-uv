@@ -7,6 +7,7 @@ reachable from HEAD. Blocks both directions with recovery hints.
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -32,6 +33,11 @@ def test_check_script_blocks_both_directions_with_hints():
     # Both drift directions must fail with recovery guidance.
     assert "mise run release" in content
     assert "--follow-tags" in content
+
+
+def test_check_script_avoids_bash4_only_builtins():
+    # macOS ships bash 3.2, which lacks `mapfile`/`readarray`.
+    assert not re.search(r"^\s*(mapfile|readarray)\b", _script().read_text(), re.M)
 
 
 def test_check_script_help_exits_zero():
