@@ -24,6 +24,7 @@ Verbatim payload files (copied unprocessed, never containing Jinja):
 | `templates/.github/workflows/*.yml` | Byte copy (Actions does not follow symlinks) |
 | `templates/scripts/release.sh` | Symlink |
 | `templates/scripts/check-version-tag.sh` | Symlink |
+| `templates/whitelist_vulture.py` | Copy (root keeps its own `whitelist_vulture.py` for its `scripts/`+`tasks/`+`tests/` scan) |
 
 Keep this list in sync with the actual non-`.jinja` files under `templates/` (a regression test enforces it). `templates/licenses/` partials are Jinja includes, not verbatim copies.
 
