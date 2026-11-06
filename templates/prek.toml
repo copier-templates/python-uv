@@ -93,6 +93,7 @@ hooks = [
 repo = "local"
 hooks = [
   { id = "taplo-format", name = "taplo format", entry = "taplo format", language = "system", files = "\\.toml$", priority = "fix-toml" },
+  { id = "vulture", name = "vulture dead code", entry = "mise run lint:deadcode", language = "system", pass_filenames = false, always_run = true, priority = "checks" },
   { id = "check-version-tag", name = "pyproject version matches latest tag", entry = "mise run check:version-tag", language = "system", stages = [
     "pre-push",
   ], pass_filenames = false, always_run = true, priority = "checks" },

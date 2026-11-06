@@ -4,6 +4,7 @@
 [![python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/)
 [![uv](https://img.shields.io/badge/uv-enabled-blue)](https://docs.astral.sh/uv/)
 [![ruff](https://img.shields.io/badge/ruff-enabled-black)](https://docs.astral.sh/ruff/)
+[![vulture](https://img.shields.io/badge/vulture-enabled-yellow)](https://github.com/jendrikseipp/vulture)
 [![copier](https://img.shields.io/badge/copier-template-orange)](https://copier.readthedocs.io/)
 [![mise](https://img.shields.io/badge/mise-enabled-purple)](https://mise.jdx.dev/)
 [![prek](https://raw.githubusercontent.com/j178/prek/main/docs/assets/badge.svg)](https://github.com/j178/prek)

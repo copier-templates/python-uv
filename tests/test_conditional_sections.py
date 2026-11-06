@@ -35,7 +35,9 @@ BASE_TASKS = {
 GITHUB_TASKS = {"lint:workflows", "ci:docker"}
 
 
-@pytest.mark.parametrize("snippet", ["Running Tests", "Code Quality", "img.shields.io/badge/mise", "mise.jdx.dev"])
+@pytest.mark.parametrize(
+    "snippet", ["Running Tests", "Code Quality", "img.shields.io/badge/mise", "mise.jdx.dev", "vulture"]
+)
 def test_readme_always_documents_tests_and_quality(projects: ProjectRegistry, snippet: str):
     assert snippet in (projects.render("basic") / "README.md").read_text()
 

@@ -62,11 +62,16 @@ run = "actionlint .github/workflows/*.yml templates/.github/workflows/*.yml"
 description = "Type-check Python with ty"
 run = "uv run ty check"
 
+[tasks."lint:deadcode"]
+description = "Detect dead code with vulture (config-first: reads [tool.vulture] paths)"
+run = "uv run vulture"
+
 [tasks.lint]
-description = "Run all linters (Python + types + shell + workflows)"
+description = "Run all linters (Python + types + deadcode + shell + workflows)"
 depends = [
   "lint:python",
   "lint:types",
+  "lint:deadcode",
   "lint:shell",
   "lint:workflows",
 ]
