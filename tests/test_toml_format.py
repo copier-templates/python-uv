@@ -21,11 +21,9 @@ def _taplo() -> str:
     return path
 
 
-def test_taplo_pinned_in_root_and_rendered_tools(projects: ProjectRegistry):
-    root_tools = load_toml(TEMPLATE_ROOT / "mise.toml")["tools"]
-    assert "taplo" in root_tools
-    rendered_tools = mise_toml(projects.render("basic"))["tools"]
-    assert rendered_tools.get("taplo") == root_tools["taplo"]
+def test_taplo_pinned_in_root_tools():
+    """Root toolchain must pin taplo (rendered equality is covered by `test_tool_pins_match_root_mise_toml`)."""
+    assert "taplo" in load_toml(TEMPLATE_ROOT / "mise.toml")["tools"]
 
 
 def test_mise_tasks_have_no_taplo():
@@ -41,14 +39,12 @@ def test_rendered_mise_tasks_have_no_taplo(projects: ProjectRegistry):
     assert "taplo" not in str(tasks["format:check"]["run"])
 
 
-def test_prek_declares_taplo_fixer_with_own_tier():
+def test_prek_declares_taplo_fixer_for_toml_files():
+    """taplo must own `\\.toml$` (priority/tier ordering is covered by the hooks tier tests)."""
     config = load_toml(TEMPLATE_ROOT / "templates" / "prek.toml")
     hooks = {hook["id"]: hook for repo in config["repos"] for hook in repo["hooks"]}
     assert "taplo-format" in hooks
-    hook = hooks["taplo-format"]
-    assert hook.get("priority") in config["priorities"]
-    assert config["priorities"][hook["priority"]] < config["priorities"]["checks"]
-    assert hook.get("files") == "\\.toml$"
+    assert hooks["taplo-format"].get("files") == "\\.toml$"
 
 
 def test_all_root_toml_files_are_taplo_clean():

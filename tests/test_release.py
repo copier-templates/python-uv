@@ -6,7 +6,8 @@ import os
 import subprocess
 from pathlib import Path
 
-from _projects import GIT, GIT_IDENTITY, TEMPLATE_ROOT, ProjectRegistry, mise_toml
+import pytest
+from _projects import TEMPLATE_ROOT, ProjectRegistry, git, mise_toml
 
 
 def _root_script() -> Path:
@@ -75,28 +76,34 @@ def test_latest_remote_tag_sorts_numerically():
     assert proc.stdout.strip() == "0.10.0"
 
 
-def test_suggested_version_always_bumps_patch():
+def test_suggested_version_never_uses_semver_bump():
     """`feat`/breaking commits must never suggest a minor/major bump."""
     content = _root_script().read_text()
     assert "--bumped-version" not in content, "release suggestion must not use git-cliff's semver bump"
 
-    helper = _shell_function("suggested_version")
-    cases = [
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
         (("0.2.1", "", ""), "0.2.1"),  # first release: keep pyproject version
         (("0.2.1", "0.2.1", ""), "0.2.2"),  # patch above the local tag
         (("0.2.1", "", "0.2.5"), "0.2.6"),  # patch above the remote tag
         (("0.1.0", "0.9.9", "0.10.0"), "0.10.1"),  # numeric, never minor
         (("0.3.0", "0.2.1", ""), "0.3.1"),  # pyproject ahead of tags
-    ]
-    for args, expected in cases:
-        proc = subprocess.run(  # noqa: S603
-            ["bash", "-c", f'{helper}\nsuggested_version "$@"', "_", *args],  # noqa: S607
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        assert proc.returncode == 0, proc.stderr
-        assert proc.stdout.strip() == expected, args
+    ],
+    ids=["first-release", "above-local", "above-remote", "numeric-never-minor", "pyproject-ahead"],
+)
+def test_suggested_version_always_bumps_patch(args: tuple[str, str, str], expected: str):
+    """Patch above the highest known version, never a minor/major bump."""
+    helper = _shell_function("suggested_version")
+    proc = subprocess.run(  # noqa: S603
+        ["bash", "-c", f'{helper}\nsuggested_version "$@"', "_", *args],  # noqa: S607
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 0, proc.stderr
+    assert proc.stdout.strip() == expected
 
 
 def test_off_main_prompt_defaults_to_no():
@@ -111,15 +118,9 @@ def _init_release_repo(path: Path, branch: str) -> Path:
     repo = path / "repo"
     repo.mkdir()
     (repo / "pyproject.toml").write_text('[project]\nname = "demo"\nversion = "0.1.0"\n', encoding="utf-8")
-    env = {**os.environ, **GIT_IDENTITY}
-    for args in (
-        ("init", "-q", "-b", branch),
-        ("add", "-A"),
-        ("commit", "-qm", "init"),
-    ):
-        subprocess.run(  # noqa: S603
-            [GIT, *args], cwd=repo, env=env, check=True, capture_output=True
-        )
+    git(repo, "init", "-q", "-b", branch)
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "init")
     return repo
 
 
@@ -161,20 +162,23 @@ def test_main_branch_passes_branch_gate(tmp_path: Path):
     assert (repo / "pyproject.toml").read_text(encoding="utf-8").strip().endswith('version = "0.1.0"')
 
 
-def test_act_image_reference_is_canonical():
+ACT_IMAGE_SCRIPTS = (
+    "scripts/workflows/prek.sh",
+    "scripts/workflows/test.sh",
+    "scripts/test-workflow.sh",
+)
+
+
+@pytest.mark.parametrize("rel", ACT_IMAGE_SCRIPTS, ids=["prek", "test", "test-workflow"])
+def test_act_image_reference_is_canonical(rel: str):
     """All ACT-image references must use the same registryless image."""
     canonical = 'ACT_IMAGE="catthehacker/ubuntu:act-24.04"'
-    scripts = (
-        TEMPLATE_ROOT / "scripts" / "workflows" / "prek.sh",
-        TEMPLATE_ROOT / "scripts" / "workflows" / "test.sh",
-        TEMPLATE_ROOT / "scripts" / "test-workflow.sh",
-    )
-    for script in scripts:
-        assert script.is_file(), f"Missing script: {script}"
-        content = script.read_text()
-        if "ACT_IMAGE=" in content:
-            assert canonical in content, f"Non-canonical ACT_IMAGE in {script}"
-        assert "ghcr.io" not in content, f"ghcr.io reference in {script}"
+    script = TEMPLATE_ROOT / rel
+    assert script.is_file(), f"Missing script: {script}"
+    content = script.read_text()
+    if "ACT_IMAGE=" in content:
+        assert canonical in content, f"Non-canonical ACT_IMAGE in {script}"
+    assert "ghcr.io" not in content, f"ghcr.io reference in {script}"
 
 
 def test_rendered_mise_has_release_task_and_gum(projects: ProjectRegistry):
