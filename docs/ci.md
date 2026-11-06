@@ -16,7 +16,7 @@ flowchart TD
   B --> C["⚙️ Install pinned toolchain (mise)"]:::setup
   C --> D["💾 Cache UV Downloads"]:::cache
   D --> E["🧪 Run CI checks (mise run ci)"]:::test
-  E --> F["📋 lint + format:check + hooks + test:unit"]:::summary
+  E --> F["📋 check:version-tag + lint + format:check + test:unit"]:::summary
 ```
 
 ## Workflow Summary
@@ -33,8 +33,12 @@ Key features:
   10-job grid (2 OS × 5 Pythons) multiplied Copier-render cost for no signal,
   since rendering is platform-independent Python and the interpreter is pinned.
 - **Dependency caching**: uv download caches are cached for faster runs.
-- **Test execution**: `mise run ci` runs `lint` + `format:check` + `hooks` + `test:unit` + `check:version-tag`, where
-  `test:unit` is the Copier template validation suite in `tests/`.
+- **Test execution**: `mise run ci` runs `check:version-tag` + `lint` + `format:check` + `test:unit`, where
+  `test:unit` is the Copier template validation suite in `tests/`. The version-tag
+  gate runs first so drift fails fast, before the expensive steps.
+- **No prek in CI**: prek hooks run locally on commit/push (or via
+  `mise run hooks`); CI uses the check-only `lint` and `format:check` tasks, so
+  the mutating fixer suite never rewrites files on the runner.
 
 ## Key Stages
 
@@ -44,4 +48,4 @@ Key features:
 | 📥 Checkout | Retrieves repository code |
 | ⚙️ Setup | Installs pinned toolchain via mise |
 | 💾 Cache | Optimizes dependency installation |
-| 🧪 Tests | Executes `mise run ci` (lint + format:check + hooks + test:unit + check:version-tag) |
+| 🧪 Tests | Executes `mise run ci` (check:version-tag + lint + format:check + test:unit) |

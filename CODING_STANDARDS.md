@@ -54,5 +54,5 @@ Use Conventional Commits (`feat:`, `fix:`, `chore(deps):`), enforced by the `com
 | `mise run test:unit`                           | Template validation tests (`tests/`)                           |
 | `mise run test:integration`                    | Integration tests (`tests/integration/`, skips when absent)    |
 | `mise run test`                                | Aggregator: `test:unit` + `test:integration`                   |
-| `mise run ci`                                  | Pre-push gate: `lint` + `format:check` + `hooks` + `test:unit` + `check:version-tag` |
+| `mise run ci`                                  | Pre-push gate: `check:version-tag` + `lint` + `format:check` + `test:unit` |
 | `mise run check:version-tag`                 | Block push when `pyproject.toml` version differs from latest tag |

@@ -124,22 +124,20 @@ run = "prek update"
 description = "Run CI checks (ordered)"
 env = { CI = "true" }
 run = [
+  { task = "check:version-tag" },
   { task = "lint" },
   { task = "format:check" },
-  { task = "hooks" },
   { task = "test:unit" },
-  { task = "check:version-tag" },
 ]
 
 [tasks."ci:full"]
 description = "Full local gate, mirrors GitHub Actions"
 env = { CI = "true" }
 run = [
+  { task = "check:version-tag" },
   { task = "lint" },
   { task = "format:check" },
-  { task = "hooks" },
   { task = "test" },
-  { task = "check:version-tag" },
 ]
 
 [tasks.doctor]
