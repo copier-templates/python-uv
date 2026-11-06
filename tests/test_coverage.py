@@ -13,10 +13,11 @@ def _root_pyproject() -> dict:
 
 
 def test_test_runs_report_coverage():
-    """Root pytest addopts must enable coverage over `scripts/` and `tasks/`."""
+    """Root pytest addopts must enable coverage over `scripts/`, `tasks/` and the release module."""
     addopts = _root_pyproject()["tool"]["pytest"]["ini_options"]["addopts"]
     assert "--cov=scripts" in addopts
     assert "--cov=tasks" in addopts
+    assert "--cov=templates/scripts" in addopts
     assert "--cov-report=term-missing" in addopts
 
 

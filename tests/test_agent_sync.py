@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 
+import pytest
 from _projects import TEMPLATE_ROOT
 
 AGENTS_DIR = TEMPLATE_ROOT / ".agents"
@@ -51,3 +52,15 @@ def test_verbatim_payload_list_matches_template_tree():
         "Canonical verbatim payload list in CODING_STANDARDS.md out of sync with templates/: "
         f"missing={missing} stale={stale}"
     )
+
+
+@pytest.mark.parametrize(
+    "rel_path",
+    ["templates/scripts/release_version.py", "templates/scripts/lib/release-common.sh"],
+)
+def test_verbatim_payload_list_names_release_payload_files(rel_path: str):
+    """The release module and logging helper must be listed as verbatim payload."""
+    standards_doc = (TEMPLATE_ROOT / "CODING_STANDARDS.md").read_text()
+    section = re.search(r"## Template contract(.*?)(?=\n## |\Z)", standards_doc, re.DOTALL)
+    assert section, "Canonical verbatim payload list missing from CODING_STANDARDS.md"
+    assert f"`{rel_path}`" in section.group(1), f"Missing {rel_path} from the verbatim payload table"

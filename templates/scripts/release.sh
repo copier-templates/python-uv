@@ -3,31 +3,46 @@
 # amend HEAD, and tag. Never pushes. Shows local vs origin tags before prompting.
 # Interactive via gum on a TTY, flag-driven otherwise (CI-safe).
 #
-#   scripts/release.sh [--version X.Y.Z] [--yes]
+#   scripts/release.sh [--version X.Y.Z] [--bump patch|minor|major] [--yes] [--print-version]
 #   scripts/release.sh --help
 #
 # Env overrides (same as flags, win over nothing — flags win over env):
-#   RELEASE_VERSION, RELEASE_YES=1
+#   RELEASE_VERSION, RELEASE_BUMP, RELEASE_YES=1
 set -euo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/release-common.sh
+source "$SCRIPT_DIR/lib/release-common.sh"
+
 VERSION=""
+BUMP=""
+BUMP_GIVEN=0
+PRINT_VERSION=0
 ASSUME_YES=0
 
 usage() {
   cat <<'EOF'
 Usage:
-  release.sh [--version X.Y.Z] [--yes]
+  release.sh [--version X.Y.Z] [--bump patch|minor|major] [--yes]
+  release.sh --print-version [--bump patch|minor|major]
   release.sh --help
 
 Cut a release in the current repository:
-  1. determines the next version (always a patch bump; conventional commits
-     only shape the changelog)
+  1. determines the next version (patch bump by default, or --bump/--version;
+     conventional commits only shape the changelog)
   2. bumps [project] version in pyproject.toml and re-locks uv.lock
   3. regenerates CHANGELOG.md, amends HEAD, and tags (never pushes)
 
+With --print-version the script prints the version it would release and
+exits 0 without touching the working tree (used by CI to preview the
+version before cutting the release).
+
 Options:
   --version X.Y.Z   release this exact version (default: prompt on a TTY,
-                    or the suggested patch version with --yes)
+                    or the suggested bump with --yes)
+  --bump KIND       bump the highest known version by KIND (patch, minor or
+                    major); ignored when --version is given
+  --print-version   print the release version and exit (no side effects)
   --yes             non-interactive: accept the suggested version, skip
                     confirmations, and allow releasing from a non-main/master
                     branch (required when not on a TTY)
@@ -35,11 +50,19 @@ Options:
 
 Environment:
   RELEASE_VERSION   same as --version
+  RELEASE_BUMP      same as --bump
   RELEASE_YES=1     same as --yes
+
+Exit codes:
+  0  success (or the printed version with --print-version)
+  1  release refused (dirty tree, tag exists, version not above known, ...)
+  2  usage error (unknown flag, invalid version, missing value)
 
 Examples:
   scripts/release.sh
+  scripts/release.sh --bump minor --yes
   scripts/release.sh --version 0.4.0 --yes
+  scripts/release.sh --bump major --print-version
   RELEASE_YES=1 scripts/release.sh
 EOF
 }
@@ -51,8 +74,23 @@ while [[ $# -gt 0 ]]; do
       VERSION="$2"
       shift 2
       ;;
+    --bump)
+      [[ $# -ge 2 ]] || { usage >&2; exit 2; }
+      BUMP="$2"
+      BUMP_GIVEN=1
+      shift 2
+      ;;
     --version=*)
       VERSION="${1#--version=}"
+      shift
+      ;;
+    --bump=*)
+      BUMP="${1#--bump=}"
+      BUMP_GIVEN=1
+      shift
+      ;;
+    --print-version)
+      PRINT_VERSION=1
       shift
       ;;
     --yes)
@@ -82,68 +120,24 @@ done
 
 # Flags win over env.
 VERSION="${VERSION:-${RELEASE_VERSION:-}}"
+BUMP="${BUMP:-${RELEASE_BUMP:-patch}}"
+if [[ -n "${RELEASE_BUMP:-}" ]]; then
+  BUMP_GIVEN=1
+fi
 if [[ "${RELEASE_YES:-0}" == "1" ]]; then
   ASSUME_YES=1
 fi
-
-# --- logging (colors only on a TTY, mirrors scripts/lib/common.sh) ---
-if [[ -t 1 ]]; then
-  _C_OK=$'\033[1;32m'
-  _C_ERR=$'\033[1;31m'
-  _C_WARN=$'\033[1;33m'
-  _C_INFO=$'\033[1;34m'
-  _C_OFF=$'\033[0m'
-else
-  _C_OK=""
-  _C_ERR=""
-  _C_WARN=""
-  _C_INFO=""
-  _C_OFF=""
+if [[ ! $BUMP =~ ^(patch|minor|major)$ ]]; then
+  printf 'Invalid bump %q: expected patch, minor or major.\n' "$BUMP" >&2
+  exit 2
 fi
-
-log_info() { printf '%s==> %s%s\n' "$_C_INFO" "$*" "$_C_OFF"; }
-log_ok() { printf '%s✓ %s%s\n' "$_C_OK" "$*" "$_C_OFF"; }
-log_warn() { printf '%s! %s%s\n' "$_C_WARN" "$*" "$_C_OFF" >&2; }
-die() {
-  printf '%s✗ %s%s\n' "$_C_ERR" "$*" "$_C_OFF" >&2
+if [[ -n $VERSION && $BUMP_GIVEN == 1 ]]; then
+  printf 'release.sh: pass either --version or --bump, not both.\n' >&2
   exit 1
-}
-
-need_cmd() { # <cmd> [install-hint]
-  command -v "$1" >/dev/null 2>&1 || die "Required tool '$1' not found. ${2:-}"
-}
+fi
 
 is_interactive() {
   [[ -t 0 && -t 1 ]] && command -v gum >/dev/null 2>&1
-}
-
-# Highest plain X.Y.Z tag in `git ls-remote --tags` output (empty when none).
-# Ignores non-semver tags and peeled (^{}) entries; portable across BSD/GNU sort.
-latest_remote_tag() { # <ls-remote-output>
-  printf '%s\n' "$1" \
-    | sed -nE 's#.*refs/tags/([0-9]+\.[0-9]+\.[0-9]+)$#\1#p' \
-    | sort -t. -k1,1n -k2,2n -k3,3n \
-    | tail -n 1
-}
-
-# Suggested next version: the patch bump above the highest known version
-# (pyproject, latest local tag, latest remote tag). Conventional commit types
-# never bump minor/major; pass --version to release those explicitly. A repo
-# with no tags yet keeps the pyproject version for its first release.
-suggested_version() { # <current> <last-tag> <remote-tag>
-  python - "$@" <<'EOF'
-import sys
-
-def key(version):
-    return tuple(int(part) for part in version.split("."))
-
-current, last, remote = sys.argv[1:4]
-if not last and not remote:
-    print(current)
-else:
-    major, minor, patch = max(key(version) for version in (current, last, remote) if version)
-    print(f"{major}.{minor}.{patch + 1}")
-EOF
 }
 
 main() {
@@ -152,56 +146,55 @@ main() {
 
   # 1. Preflight: working tree must be clean; HEAD must not already be a
   # release commit (release files amend HEAD, never form their own commit).
-  if ! git diff --quiet || ! git diff --cached --quiet; then
-    die "Working tree is dirty. Commit or stash first, then re-run."
-  fi
-  local last_subject
-  last_subject="$(git log -1 --format=%s 2>/dev/null || true)"
-  if [[ $last_subject == chore\(release\)* ]]; then
-    die "Last commit is already a release commit ('${last_subject}'). Aborting."
-  fi
-  local branch
-  branch="$(git branch --show-current 2>/dev/null || true)"
-  if [[ -n $branch && $branch != "main" && $branch != "master" ]]; then
-    if (( ASSUME_YES )); then
-      log_warn "On branch '${branch}' (expected main/master); continuing because --yes was given."
-    elif is_interactive; then
-      log_warn "On branch '${branch}' (expected main/master)."
-      gum confirm "Release from '${branch}' instead of main/master?" --default=false \
-        || { printf 'Aborted, nothing changed.\n'; exit 0; }
-    else
-      die "On branch '${branch}' (expected main/master). Switch to main/master, or re-run with --yes to release from here."
+  # Skipped for --print-version: previewing is pure computation.
+  if (( ! PRINT_VERSION )); then
+    if ! git diff --quiet || ! git diff --cached --quiet; then
+      die "Working tree is dirty. Commit or stash first, then re-run."
+    fi
+    local last_subject
+    last_subject="$(git log -1 --format=%s 2>/dev/null || true)"
+    if [[ $last_subject == chore\(release\)* ]]; then
+      die "Last commit is already a release commit ('${last_subject}'). Aborting."
+    fi
+    local branch
+    branch="$(git branch --show-current 2>/dev/null || true)"
+    if [[ -n $branch && $branch != "main" && $branch != "master" ]]; then
+      if (( ASSUME_YES )); then
+        log_warn "On branch '${branch}' (expected main/master); continuing because --yes was given."
+      elif is_interactive; then
+        log_warn "On branch '${branch}' (expected main/master)."
+        gum confirm "Release from '${branch}' instead of main/master?" --default=false \
+          || { printf 'Aborted, nothing changed.\n'; exit 0; }
+      else
+        die "On branch '${branch}' (expected main/master). Switch to main/master, or re-run with --yes to release from here."
+      fi
     fi
   fi
-  need_cmd git-cliff "Install it: mise install"
-  need_cmd uv "Install it: mise install"
   need_cmd python "Install it: mise install"
+  if (( ! PRINT_VERSION )); then
+    need_cmd git-cliff "Install it: mise install"
+    need_cmd uv "Install it: mise install"
+  fi
   python -c 'import sys, tomllib; sys.exit(0 if sys.version_info >= (3, 12) else 1)' 2>/dev/null \
     || die "'python' must be 3.12+ (tomllib). Run via 'mise run release'."
 
   # 2. Current version + latest tag (fresh repos may have no tags yet).
-  local current_version last_tag has_tags
-  current_version="$(python - <<'EOF'
-import tomllib
-with open("pyproject.toml", "rb") as f:
-    print(tomllib.load(f)["project"]["version"])
-EOF
-)"
+  # The latest tag is the highest reachable plain X.Y.Z (not git-describe
+  # recency), so a stale branch cannot suggest a lower version.
+  local current_version last_tag has_tags tag_lines
+  current_version="$(python "$SCRIPT_DIR/release_version.py" project-version)" \
+    || die "Could not read [project] version from pyproject.toml."
+  tag_lines="$(git tag --merged HEAD 2>/dev/null || true)"
+  last_tag="$(printf '%s\n' "$tag_lines" | python "$SCRIPT_DIR/release_version.py" latest-tag)" \
+    || die "Could not compare tags by semver."
   has_tags=0
-  last_tag=""
-  if last_tag="$(git describe --tags --abbrev=0 2>/dev/null)"; then
+  if [[ -n $last_tag ]]; then
     has_tags=1
-    if [[ ! $last_tag =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-      log_warn "Latest tag '${last_tag}' is not X.Y.Z; comparing against pyproject version only."
-      last_tag=""
-      has_tags=0
-    fi
+  elif [[ -n $tag_lines ]]; then
+    log_warn "Reachable tags are not X.Y.Z; comparing against pyproject version only."
   fi
-  if (( has_tags )) && git diff --quiet "${last_tag}..HEAD" --; then
+  if (( has_tags )) && (( ! PRINT_VERSION )) && git diff --quiet "${last_tag}..HEAD" --; then
     die "Nothing to release: no commits since tag ${last_tag}."
-  fi
-  if git rev-parse --verify --quiet "refs/tags/${current_version}" >/dev/null && (( ! has_tags )); then
-    : # first release reuses the pyproject version below; tag check happens later
   fi
 
   # Remote latest tag (best-effort; stays quiet offline). Shown alongside the
@@ -209,7 +202,8 @@ EOF
   # here; the push gate (check-version-tag) catches a forgotten --follow-tags.
   local remote_tag="" remote_refs="" escaped_version=""
   if remote_refs="$(git ls-remote --tags origin 2>/dev/null)"; then
-    remote_tag="$(latest_remote_tag "$remote_refs")"
+    remote_tag="$(printf '%s\n' "$remote_refs" | python "$SCRIPT_DIR/release_version.py" latest-remote-tag)" \
+      || remote_tag=""
   fi
   if [[ -n $remote_tag && -n $last_tag ]]; then
     log_info "Latest tags: local ${last_tag}, remote ${remote_tag}."
@@ -219,19 +213,20 @@ EOF
     log_info "Latest local tag: ${last_tag} (origin unreachable or no remote tags)."
   fi
 
-  # 3. Determine the version to release. The suggestion is always the next
-  # patch, regardless of feat/breaking commits.
+  # 3. Determine the version to release. The suggestion is KIND bump above
+  # the highest known version, regardless of feat/breaking commits.
   local suggested explicit=0
-  suggested="$(suggested_version "$current_version" "$last_tag" "$remote_tag")" \
-    || die "Cannot derive a patch version from pyproject (${current_version})${last_tag:+ or tag ${last_tag}}${remote_tag:+ or remote tag ${remote_tag}}. Pass --version X.Y.Z explicitly."
+  suggested="$(python "$SCRIPT_DIR/release_version.py" suggest \
+    --bump "$BUMP" --current "$current_version" --local "$last_tag" --remote "$remote_tag")" \
+    || die "Cannot derive a $BUMP version from pyproject (${current_version})${last_tag:+ or tag ${last_tag}}${remote_tag:+ or remote tag ${remote_tag}}. Pass --version X.Y.Z explicitly."
   if [[ -n $VERSION ]]; then
     explicit=1
   fi
-  if is_interactive && (( ! explicit )); then
+  if is_interactive && (( ! explicit )) && (( ! PRINT_VERSION )); then
     VERSION="$(gum input --header "Release version" --prompt "Version: " --value "$suggested")" || exit 0
     [[ -n $VERSION ]] || die "No version entered, aborting."
   elif [[ -z $VERSION ]]; then
-    if (( ASSUME_YES )); then
+    if (( PRINT_VERSION )) || (( ASSUME_YES )); then
       VERSION="$suggested"
     else
       usage >&2
@@ -240,6 +235,10 @@ EOF
   fi
   [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] \
     || die "Invalid version '${VERSION}': expected X.Y.Z (plain tags, no 'v' prefix)."
+  if (( PRINT_VERSION )); then
+    printf '%s\n' "$VERSION"
+    exit 0
+  fi
   if git rev-parse --verify --quiet "refs/tags/${VERSION}" >/dev/null; then
     die "Tag '${VERSION}' already exists."
   fi
@@ -251,20 +250,8 @@ EOF
   # Never go backwards: above the highest of pyproject version / latest local
   # tag / latest remote tag.
   # Exception: a first release (no tags) may equal the pyproject version.
-  if ! python - "$VERSION" "$current_version" "$last_tag" "$remote_tag" <<'EOF' >/dev/null 2>&1
-import sys
-def key(v):
-    return tuple(int(p) for p in v.split("."))
-ver, cur, last, remote = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
-known = [v for v in (cur, last, remote) if v]
-floor = max(key(v) for v in known)
-if last or remote:
-    ok = key(ver) > floor
-else:
-    ok = key(ver) >= floor
-sys.exit(0 if ok else 1)
-EOF
-  then
+  if ! python "$SCRIPT_DIR/release_version.py" check-floor \
+    --version "$VERSION" --current "$current_version" --local "$last_tag" --remote "$remote_tag"; then
     die "Version ${VERSION} must be above pyproject (${current_version})${last_tag:+ and tag ${last_tag}}${remote_tag:+ and remote tag ${remote_tag}}."
   fi
 

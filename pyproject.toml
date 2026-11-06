@@ -64,8 +64,9 @@ testpaths = [
 pythonpath = [
   "scripts",
   "tasks",
+  "templates/scripts",
 ]
-addopts = "--durations=5 --durations-min=0.0 --tb=short --strict-markers --cov=scripts --cov=tasks --cov-report=html --cov-report=term-missing"
+addopts = "--durations=5 --durations-min=0.0 --tb=short --strict-markers --cov=scripts --cov=tasks --cov=templates/scripts --cov-report=html --cov-report=term-missing"
 filterwarnings = [
   "ignore:Dirty template changes included automatically:copier._vcs.DirtyLocalWarning",
 ]
@@ -81,6 +82,7 @@ python-version = "3.12"
 extra-paths = [
   "scripts",
   "tasks",
+  "templates/scripts",
 ]
 
 [tool.ruff]

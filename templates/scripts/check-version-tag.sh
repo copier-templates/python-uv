@@ -8,6 +8,10 @@
 #   scripts/check-version-tag.sh [--help]
 set -euo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/release-common.sh
+source "$SCRIPT_DIR/lib/release-common.sh"
+
 usage() {
   cat <<'EOF'
 Usage:
@@ -26,65 +30,54 @@ if [[ ${1:-} == "--help" || ${1:-} == "-h" ]]; then
   exit 0
 fi
 if [[ $# -gt 0 ]]; then
-  printf 'Unexpected argument: %s\n' "$1" >&2
+  log_error "Unexpected argument: $1"
   usage >&2
   exit 2
 fi
 
-git rev-parse --show-toplevel >/dev/null 2>&1 || {
-  printf 'Not inside a git repository.\n' >&2
-  exit 1
-}
+git rev-parse --show-toplevel >/dev/null 2>&1 || die "Not inside a git repository."
 cd "$(git rev-parse --show-toplevel)"
 
-current_version="$(python - <<'EOF'
-import tomllib
-with open("pyproject.toml", "rb") as f:
-    print(tomllib.load(f)["project"]["version"])
-EOF
-)" || {
-  printf 'Could not read [project] version from pyproject.toml.\n' >&2
-  exit 1
-}
-if [[ ! $current_version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  printf 'Invalid pyproject version %q: expected X.Y.Z.\n' "$current_version" >&2
-  exit 1
-fi
+current_version="$(python "$SCRIPT_DIR/release_version.py" project-version)" \
+  || die "Could not read [project] version from pyproject.toml."
 
 # Newest reachable plain X.Y.Z tag by semver (git describe is recency, not max).
-# Portable read loop: `mapfile` needs bash 4+, macOS ships bash 3.2.
-tags=()
-while IFS= read -r tag; do
-  tags+=("$tag")
-done < <(git -c color.ui=false tag --merged HEAD 2>/dev/null | grep -E --color=never '^[0-9]+\.[0-9]+\.[0-9]+$' || true)
-latest=""
-if (( ${#tags[@]} > 0 )); then
-  latest="$(printf '%s\n' "${tags[@]}" | python -c 'import sys; print(sorted((tuple(map(int, l.strip().split("."))), l.strip()) for l in sys.stdin if l.strip())[-1][1])')" || {
-    printf 'Could not compare tags by semver.\n' >&2
-    exit 1
-  }
-fi
-
-if [[ -z $latest ]]; then
-  printf 'No X.Y.Z tags reachable from HEAD; pyproject is %s. OK.\n' "$current_version"
-  exit 0
-fi
-
-if [[ $current_version == "$latest" ]]; then
-  printf 'pyproject version %s matches latest tag %s. OK.\n' "$current_version" "$latest"
-  # Best-effort reminder when the tag is not on the remote yet (offline-safe).
-  if remote_tags="$(git ls-remote --tags origin 2>/dev/null)" && ! grep -q "refs/tags/${latest}$" <<<"$remote_tags"; then
-    printf 'Note: tag %s is not on origin yet; push with: git push --follow-tags\n' "$latest"
-  fi
-  exit 0
-fi
-
-higher="$(printf '%s\n%s\n' "$current_version" "$latest" | python -c 'import sys; vs=[(tuple(map(int, l.strip().split("."))), l.strip()) for l in sys.stdin]; print(sorted(vs)[-1][1])')"
-if [[ $higher == "$current_version" ]]; then
-  printf 'Blocked: pyproject version %s is ahead of latest tag %s.\n' "$current_version" "$latest" >&2
-  printf 'You bumped without tagging. Fix with: mise run release --version %s --yes, then: git push --follow-tags\n' "$current_version" >&2
+# An unborn HEAD (fresh repo, no commits) cannot be tagged yet: treat it like
+# "no tags reachable" instead of letting `git tag --merged HEAD` fail.
+if git rev-parse --verify --quiet HEAD >/dev/null; then
+  latest="$(git -c color.ui=false tag --merged HEAD 2>/dev/null \
+    | python "$SCRIPT_DIR/release_version.py" latest-tag)" \
+    || die "Could not compare tags by semver."
 else
-  printf 'Blocked: latest tag %s is ahead of pyproject version %s.\n' "$latest" "$current_version" >&2
-  printf 'Never delete the tag. Fix with: mise run release (--version above %s), then: git push --follow-tags\n' "$latest" >&2
+  latest=""
 fi
-exit 1
+
+state="$(python "$SCRIPT_DIR/release_version.py" classify \
+  --current "$current_version" --latest "$latest")" \
+  || die "Could not classify version drift."
+
+case "$state" in
+  no-tags)
+    log_ok "No X.Y.Z tags reachable from HEAD; pyproject is ${current_version}. OK."
+    ;;
+  ok)
+    log_ok "pyproject version ${current_version} matches latest tag ${latest}. OK."
+    # Best-effort reminder when the tag is not on the remote yet (offline-safe).
+    if remote_tags="$(git ls-remote --tags origin 2>/dev/null)" && ! grep -q "refs/tags/${latest}$" <<<"$remote_tags"; then
+      log_info "Note: tag ${latest} is not on origin yet; push with: git push --follow-tags"
+    fi
+    ;;
+  ahead)
+    log_error "Blocked: pyproject version ${current_version} is ahead of latest tag ${latest}."
+    die "You bumped without tagging. Fix with: mise run release --version ${current_version} --yes, then: git push --follow-tags"
+    ;;
+  behind)
+    log_error "Blocked: latest tag ${latest} is ahead of pyproject version ${current_version}."
+    die "Never delete the tag. Fix with: mise run release (--version above ${latest}), then: git push --follow-tags"
+    ;;
+  *)
+    die "Unknown version drift state: ${state}"
+    ;;
+esac
+
+exit 0

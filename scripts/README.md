@@ -5,7 +5,10 @@ Run GitHub Actions workflows on your machine before pushing: lint them with
 
 Cutting a release is separate: `scripts/release.sh` (see `mise run release`
 and `docs/development.md`) bumps `pyproject.toml`, regenerates
-`CHANGELOG.md`, amends, and tags.
+`CHANGELOG.md`, amends, and tags. Version math lives in the shipped
+`templates/scripts/release_version.py` module and shared logging in
+`templates/scripts/lib/release-common.sh`; both release scripts source those
+payload files, and the root `scripts/` entries are symlinks into `templates/`.
 
 `scripts/release/` holds the CI release automation (root-only, never shipped
 to generated projects): `resolve-version.sh` maps a PR's `release:*` label

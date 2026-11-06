@@ -79,6 +79,8 @@ License partials under `templates/licenses/` are Jinja includes excluded from co
 │   ├── .editorconfig            # Editor config (verbatim; root is a symlink)
 │   ├── scripts/release.sh       # Release script (verbatim; root is a symlink)
 │   ├── scripts/check-version-tag.sh  # Version-tag gate (verbatim; root is a symlink)
+│   ├── scripts/release_version.py    # Version math for both scripts (verbatim; root is a symlink)
+│   ├── scripts/lib/release-common.sh # Shared logging helper (verbatim; root is a symlink)
 │   ├── .gitattributes.jinja
 │   ├── .gitignore.jinja
 │   ├── pyproject.toml.jinja     # Project configuration (templated)

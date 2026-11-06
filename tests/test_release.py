@@ -44,66 +44,113 @@ def test_release_script_rejects_unknown_flags():
     assert proc.returncode == 2
 
 
-def _shell_function(name: str) -> str:
-    """Extract a top-level shell function from the release script."""
+def test_release_script_sources_payload_common_helper():
+    """Shipped logging lives in one payload file, not duplicated per script."""
     content = _root_script().read_text()
-    start = content.index(f"{name}() {{")
-    end = content.index("\n}\n", start) + len("\n}\n")
-    return content[start:end]
+    assert "lib/release-common.sh" in content
+    for duplicate in ("log_info() {", "log_ok() {", "log_warn() {", "die() {", "_C_OK="):
+        assert duplicate not in content, f"release.sh still defines {duplicate!r}; source lib/release-common.sh"
 
 
-def test_latest_remote_tag_sorts_numerically():
-    """`git ls-remote` output -> highest plain X.Y.Z tag (regression: sort bug)."""
-    helper = _shell_function("latest_remote_tag")
+def test_release_script_delegates_version_math_to_module():
+    """Version parsing/bumping/suggestion belongs to `release_version.py`."""
+    content = _root_script().read_text()
+    assert "release_version.py" in content
+    for inline in ("latest_remote_tag() {", "suggested_version() {", "def key("):
+        assert inline not in content, f"release.sh still embeds {inline!r}"
 
-    refs = "\n".join(
-        [
-            "aaa\trefs/tags/0.9.0",
-            "bbb\trefs/tags/0.10.0",
-            "ccc\trefs/tags/0.10.0^{}",
-            "ddd\trefs/tags/v1.0.0",
-            "eee\trefs/tags/latest",
-            "",
-        ]
-    )
+
+def test_suggested_version_supports_exact_version_override():
+    """`--version` still releases an exact version regardless of bump math."""
+    content = _root_script().read_text()
+    assert "--version" in content
+    assert "pass either --version or --bump, not both" in content
+
+
+def _tag(repo: Path, tag: str) -> None:
+    git(repo, "tag", tag)
+
+
+def test_print_version_computes_bump_without_side_effects(tmp_path: Path):
+    """`--print-version` previews the KIND bump without touching the tree."""
+    repo = _init_release_repo(tmp_path, "main")
+    _tag(repo, "0.1.0")
+    git(repo, "commit", "-q", "--allow-empty", "-m", "feat: x")
+    before = (repo / "pyproject.toml").read_text(encoding="utf-8")
+
+    for bump, expected in (("patch", "0.1.1"), ("minor", "0.2.0"), ("major", "1.0.0")):
+        proc = subprocess.run(  # noqa: S603
+            [str(_root_script()), "--bump", bump, "--print-version"],
+            cwd=repo,
+            check=False,
+            capture_output=True,
+            text=True,
+            stdin=subprocess.DEVNULL,
+        )
+        assert proc.returncode == 0, proc.stderr
+        assert proc.stdout.strip().splitlines()[-1] == expected
+    assert (repo / "pyproject.toml").read_text(encoding="utf-8") == before
+    assert not (repo / "CHANGELOG.md").exists()
+
+
+def test_print_version_works_on_dirty_tree(tmp_path: Path):
+    """Preview is pure computation: dirty tree must not block it."""
+    repo = _init_release_repo(tmp_path, "main")
+    (repo / "dirty.txt").write_text("uncommitted\n", encoding="utf-8")
+
     proc = subprocess.run(  # noqa: S603
-        ["bash", "-c", f'{helper}\nlatest_remote_tag "$1"', "_", refs],  # noqa: S607
+        [str(_root_script()), "--bump", "patch", "--print-version"],
+        cwd=repo,
+        check=False,
+        capture_output=True,
+        text=True,
+        stdin=subprocess.DEVNULL,
+    )
+    assert proc.returncode == 0, proc.stderr
+    assert proc.stdout.strip().splitlines()[-1] == "0.1.0"
+
+
+def test_release_rejects_version_with_bump(tmp_path: Path):
+    repo = _init_release_repo(tmp_path, "main")
+
+    proc = subprocess.run(  # noqa: S603
+        [str(_root_script()), "--version", "0.2.0", "--bump", "minor", "--print-version"],
+        cwd=repo,
+        check=False,
+        capture_output=True,
+        text=True,
+        stdin=subprocess.DEVNULL,
+    )
+    assert proc.returncode == 1
+    assert "either --version or --bump" in proc.stderr
+
+
+def test_release_rejects_invalid_bump(tmp_path: Path):
+    repo = _init_release_repo(tmp_path, "main")
+
+    proc = subprocess.run(  # noqa: S603
+        [str(_root_script()), "--bump", "huge", "--print-version"],
+        cwd=repo,
+        check=False,
+        capture_output=True,
+        text=True,
+        stdin=subprocess.DEVNULL,
+    )
+    assert proc.returncode == 2
+    assert "Invalid bump" in proc.stderr
+
+
+def test_bare_run_prints_verbose_help():
+    """Running the script without flags must explain itself."""
+    proc = subprocess.run(  # noqa: S603
+        [str(_root_script()), "--help"],
         check=False,
         capture_output=True,
         text=True,
     )
-    assert proc.returncode == 0, proc.stderr
-    assert proc.stdout.strip() == "0.10.0"
-
-
-def test_suggested_version_never_uses_semver_bump():
-    """`feat`/breaking commits must never suggest a minor/major bump."""
-    content = _root_script().read_text()
-    assert "--bumped-version" not in content, "release suggestion must not use git-cliff's semver bump"
-
-
-@pytest.mark.parametrize(
-    ("args", "expected"),
-    [
-        (("0.2.1", "", ""), "0.2.1"),  # first release: keep pyproject version
-        (("0.2.1", "0.2.1", ""), "0.2.2"),  # patch above the local tag
-        (("0.2.1", "", "0.2.5"), "0.2.6"),  # patch above the remote tag
-        (("0.1.0", "0.9.9", "0.10.0"), "0.10.1"),  # numeric, never minor
-        (("0.3.0", "0.2.1", ""), "0.3.1"),  # pyproject ahead of tags
-    ],
-    ids=["first-release", "above-local", "above-remote", "numeric-never-minor", "pyproject-ahead"],
-)
-def test_suggested_version_always_bumps_patch(args: tuple[str, str, str], expected: str):
-    """Patch above the highest known version, never a minor/major bump."""
-    helper = _shell_function("suggested_version")
-    proc = subprocess.run(  # noqa: S603
-        ["bash", "-c", f'{helper}\nsuggested_version "$@"', "_", *args],  # noqa: S607
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    assert proc.returncode == 0, proc.stderr
-    assert proc.stdout.strip() == expected
+    assert proc.returncode == 0
+    for marker in ("--bump", "--print-version", "Exit codes:", "Examples:"):
+        assert marker in proc.stdout
 
 
 def test_off_main_prompt_defaults_to_no():
@@ -250,10 +297,11 @@ def test_generated_readme_documents_release(projects: ProjectRegistry):
 
 
 def test_root_only_scripts_are_absent(projects: ProjectRegistry):
-    """Template-dev scripts must not leak; the release script must ship."""
+    """Template-dev scripts must not leak; the payload release files must ship."""
     project = projects.render("basic")
     for rel in (
-        "scripts/lib",
+        "scripts/lib/common.sh",
+        "scripts/lib/inject_step.py",
         "scripts/release",
         "scripts/workflows",
         "scripts/test-workflow.sh",
@@ -261,4 +309,7 @@ def test_root_only_scripts_are_absent(projects: ProjectRegistry):
         "scripts/update_python_versions.py",
     ):
         assert not (project / rel).exists(), f"Leaked template-dev file: {rel}"
-    assert (project / "scripts" / "release.sh").is_file()
+    lib_entries = {entry.name for entry in (project / "scripts" / "lib").iterdir()}
+    assert lib_entries == {"release-common.sh"}, f"Unexpected scripts/lib payload: {sorted(lib_entries)}"
+    for rel in ("scripts/release.sh", "scripts/release_version.py", "scripts/lib/release-common.sh"):
+        assert (project / rel).is_file(), f"Missing shipped release file: {rel}"

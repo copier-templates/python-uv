@@ -20,6 +20,8 @@ SYMLINKED_ROOT_PATHS = [
     ".editorconfig",
     "scripts/release.sh",
     "scripts/check-version-tag.sh",
+    "scripts/release_version.py",
+    "scripts/lib/release-common.sh",
 ]
 
 # Task names shared by root `mise.toml` and every full-tooling generated project.
