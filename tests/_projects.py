@@ -5,6 +5,7 @@ Test modules import from here, never from `conftest.py`.
 
 from __future__ import annotations
 
+import functools
 import os
 import shutil
 import subprocess
@@ -42,6 +43,7 @@ def load_toml(path: Path) -> dict[str, Any]:
     return tomllib.loads(path.read_text())
 
 
+@functools.lru_cache(maxsize=1)
 def copier_config() -> dict[str, Any]:
     """Parse the root `copier.yaml` (Jinja lives inside quoted scalars, so it loads as YAML)."""
     return yaml.safe_load((TEMPLATE_ROOT / "copier.yaml").read_text())
