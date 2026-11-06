@@ -51,10 +51,12 @@ def test_check_script_help_exits_zero():
     assert "pyproject" in proc.stdout.lower()
 
 
-def test_prek_declares_pre_push_version_tag_hook():
+def test_prek_pre_push_hook_runs_mise_version_tag_task():
     config = load_toml(TEMPLATE_ROOT / "templates" / "prek.toml")
     hooks = {hook["id"]: hook for repo in config["repos"] for hook in repo["hooks"]}
-    assert hooks["check-version-tag"].get("stages") == ["pre-push"]
+    hook = hooks["check-version-tag"]
+    assert hook.get("stages") == ["pre-push"]
+    assert hook["entry"] == "mise run check:version-tag"
 
 
 def test_mise_tasks_expose_check_version_tag():

@@ -93,7 +93,7 @@ hooks = [
 repo = "local"
 hooks = [
   { id = "taplo-format", name = "taplo format", entry = "taplo format", language = "system", files = "\\.toml$", priority = "fix-toml" },
-  { id = "check-version-tag", name = "pyproject version matches latest tag", entry = "./scripts/check-version-tag.sh", language = "system", stages = [
+  { id = "check-version-tag", name = "pyproject version matches latest tag", entry = "mise run check:version-tag", language = "system", stages = [
     "pre-push",
   ], pass_filenames = false, always_run = true, priority = "checks" },
 ]
