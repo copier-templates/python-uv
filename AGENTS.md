@@ -6,8 +6,8 @@ Copier template for Python + `uv`, not an app. `templates/` is the payload (`_su
 
 Run every command through mise (toolchain pinned in `mise.toml`): other commands can be invoked only if mise task cannot handle them.
 Tight loop: `mise run ci` green before delivery.
-Work on the orchestrator-assigned isolated branch or worktree; never push — the orchestrator owns cleanup and fast-forward rebase. Keep `prek` hooks in sync with mise tasks.
-Releases are human-run (`mise run release`); agents never bump versions, tag, or push.
+Work on the orchestrator-assigned isolated branch or worktree; never push — the orchestrator owns cleanup and fast-forward rebase. Branch names follow `feat|hotfix/issue-<n>-short-desc` and always merge to `main` (no develop or release branches). Keep `prek` hooks in sync with mise tasks.
+Releases are human-run (`mise run release`); agents never bump versions, tag, or push. Exception: `@releaser` may open a label-marked release PR (no bump/tag/push — the CI release job in `.github/workflows/release.yml` owns those once gates pass).
 Split: docs-only/small changes run single-shot; any `templates/` change runs `@tester` → `@coder` → `@reviewer` with a matching `tests/` regression test.
 Workers never spawn sub-agents; `@reviewer` stays read-only. For orchestrator prefer `muse-spark-1.3` at `xhigh`, else `claude-opus-5.5` (or latest `opus`), else the tool default. Never pin a model in repo files.
 
@@ -19,6 +19,7 @@ Workers never spawn sub-agents; `@reviewer` stays read-only. For orchestrator pr
 | `@tester` | `.agents/tester.md` | RED regression tests, verification runs |
 | `@coder` | `.agents/coder.md` | Scoped GREEN implementation and granular commits |
 | `@reviewer` | `.agents/reviewer.md` | Read-only fresh-context diff review |
+| `@releaser` | `.agents/releaser.md` | Release PR prep: label confirm + PR open, no bump/tag/push |
 
 How-to: [Changing `templates`/](CODING_STANDARDS.md#changing-templates), [Template contract](CODING_STANDARDS.md#template-contract), [Shell](CODING_STANDARDS.md#shell), [Refactoring](CODING_STANDARDS.md#refactoring), [Security and `copier.yaml`](CODING_STANDARDS.md#security-and-copieryaml), [Commits and branches](CODING_STANDARDS.md#commits-and-branches), [Mise task map](CODING_STANDARDS.md#mise-task-map).
 
