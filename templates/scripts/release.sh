@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Cut a release: bump [project] version, re-lock, regenerate CHANGELOG.md,
-# commit, and tag. Never pushes. Shows local vs origin tags before prompting.
+# amend HEAD, and tag. Never pushes. Shows local vs origin tags before prompting.
 # Interactive via gum on a TTY, flag-driven otherwise (CI-safe).
 #
 #   scripts/release.sh [--version X.Y.Z] [--yes]
@@ -23,7 +23,7 @@ Cut a release in the current repository:
   1. determines the next version (always a patch bump; conventional commits
      only shape the changelog)
   2. bumps [project] version in pyproject.toml and re-locks uv.lock
-  3. regenerates CHANGELOG.md, commits, and tags (never pushes)
+  3. regenerates CHANGELOG.md, amends HEAD, and tags (never pushes)
 
 Options:
   --version X.Y.Z   release this exact version (default: prompt on a TTY,
@@ -150,9 +150,15 @@ main() {
   git rev-parse --show-toplevel >/dev/null 2>&1 || die "Not inside a git repository."
   cd "$(git rev-parse --show-toplevel)"
 
-  # 1. Preflight: the release commit must contain exactly the release files.
+  # 1. Preflight: working tree must be clean; HEAD must not already be a
+  # release commit (release files amend HEAD, never form their own commit).
   if ! git diff --quiet || ! git diff --cached --quiet; then
     die "Working tree is dirty. Commit or stash first, then re-run."
+  fi
+  local last_subject
+  last_subject="$(git log -1 --format=%s 2>/dev/null || true)"
+  if [[ $last_subject == chore\(release\)* ]]; then
+    die "Last commit is already a release commit ('${last_subject}'). Aborting."
   fi
   local branch
   branch="$(git branch --show-current 2>/dev/null || true)"
@@ -296,16 +302,18 @@ EOF
   log_info "CHANGELOG.md preview:"
   head -n 15 CHANGELOG.md
   if is_interactive && (( ! ASSUME_YES )); then
-    gum confirm "Commit and tag ${VERSION}?" --default \
-      || { printf 'Aborted, nothing committed.\n'; exit 0; }
+    gum confirm "Amend HEAD and tag ${VERSION}?" --default \
+      || { printf 'Aborted, HEAD untouched.\n'; exit 0; }
   fi
 
-  # 8. Commit + tag. The message prefix is in cliff.toml's skip list, so
-  # release commits never pollute future changelogs.
-  if ! git commit -m "chore(release): prepare for ${VERSION}"; then
-    printf 'Commit failed (hooks may have modified files).\n' >&2
+  # 8. Amend + tag. Release files are folded into HEAD so the version bump
+  # never forms a standalone release commit. Historical `chore(release)`
+  # commits stay in cliff.toml's skip list so old releases never pollute
+  # future changelogs.
+  if ! git commit --amend --no-edit; then
+    printf 'Amend failed (hooks may have modified files).\n' >&2
     printf "Inspect with 'git status', stage fixes, then finish manually:\n" >&2
-    printf '  git commit -m "chore(release): prepare for %s" && git tag %s\n' "$VERSION" "$VERSION" >&2
+    printf '  git commit --amend --no-edit && git tag %s\n' "$VERSION" >&2
     exit 1
   fi
   git tag "$VERSION" || die "Tagging '${VERSION}' failed."

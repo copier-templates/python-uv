@@ -114,6 +114,59 @@ def test_off_main_prompt_defaults_to_no():
     assert "Aborted, nothing changed." in content
 
 
+def test_release_amends_head_instead_of_new_commit():
+    """Release files must amend HEAD, never form a standalone release commit."""
+    content = _root_script().read_text()
+    assert "git commit --amend --no-edit" in content
+    assert 'git commit -m "chore(release)' not in content
+    assert "Amend HEAD and tag" in content
+
+
+def test_release_aborts_when_head_is_release_commit():
+    """The script must refuse to amend when HEAD already starts with chore(release)."""
+    content = _root_script().read_text()
+    assert "last_subject" in content
+    assert "chore\\(release\\)" in content
+    assert "already a release commit" in content
+
+
+def test_release_commit_aborts_on_release_head(tmp_path: Path):
+    """A HEAD of `chore(release)...` must abort before touching release files."""
+    repo = _init_release_repo(tmp_path, "main")
+    git(repo, "commit", "-q", "--allow-empty", "-m", "chore(release): prepare for 0.1.0")
+    pyproject_before = (repo / "pyproject.toml").read_text(encoding="utf-8")
+
+    proc = subprocess.run(  # noqa: S603
+        [str(_root_script())],
+        cwd=repo,
+        check=False,
+        capture_output=True,
+        text=True,
+        stdin=subprocess.DEVNULL,
+    )
+
+    assert proc.returncode == 1
+    assert "already a release commit" in proc.stderr
+    assert (repo / "pyproject.toml").read_text(encoding="utf-8") == pyproject_before
+    assert not (repo / "CHANGELOG.md").exists()
+
+
+def test_release_commit_passes_guard_on_normal_head(tmp_path: Path):
+    """A normal HEAD must pass the release-commit guard (later gates may apply)."""
+    repo = _init_release_repo(tmp_path, "main")
+
+    proc = subprocess.run(  # noqa: S603
+        [str(_root_script())],
+        cwd=repo,
+        check=False,
+        capture_output=True,
+        text=True,
+        stdin=subprocess.DEVNULL,
+    )
+
+    assert "already a release commit" not in proc.stderr
+
+
 def _init_release_repo(path: Path, branch: str) -> Path:
     repo = path / "repo"
     repo.mkdir()

@@ -57,7 +57,7 @@ mise run release
 
 On a TTY with `gum` it prompts to confirm/edit the suggested version
 (always the next patch above the latest tag; conventional commits only
-shape the changelog) and to approve the commit. Pass `--version` when a
+shape the changelog) and to approve the amend. Pass `--version` when a
 minor or major release is intended. Non-interactive (or without `gum`):
 
 ```bash
@@ -66,8 +66,7 @@ mise run release -- --version 0.4.0 --yes
 ```
 
 The script bumps `[project] version` in `pyproject.toml`, re-locks
-`uv.lock`, regenerates `CHANGELOG.md`, commits
-(`chore(release): prepare for X`), and tags `X` — it never pushes.
+`uv.lock`, regenerates `CHANGELOG.md`, amends `HEAD`, and tags `X` — it never pushes.
 A repo with no tags yet (first release) defaults to the `pyproject.toml`
 version. Afterwards: `git push --follow-tags`.
 
