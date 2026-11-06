@@ -7,6 +7,11 @@ Cutting a release is separate: `scripts/release.sh` (see `mise run release`
 and `docs/development.md`) bumps `pyproject.toml`, regenerates
 `CHANGELOG.md`, amends, and tags.
 
+`scripts/release/` holds the CI release automation (root-only, never shipped
+to generated projects): `resolve-version.sh` maps a PR's `release:*` label
+to a bump kind, `cleanup-tag.sh` deletes orphan tags of unmerged PRs. Both
+are plain CLIs with `--help`; the release workflow wires them together.
+
 ```bash
 ./scripts/test-workflow.sh prek
 ./scripts/test-workflow.sh --list

@@ -1,0 +1,132 @@
+name: Release
+
+"on":
+  # Fires when the Test workflow finishes. The release job additionally
+  # requires a successful PR run (see its `if:`); red CI never releases.
+  workflow_run:
+    workflows: ["Test"]
+    types: [completed]
+  # Manual pilot hatch: run the release for one PR from any branch, e.g.
+  # `gh workflow run release.yml --ref my-branch -f pr=7`.
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: "PR number to release"
+        required: true
+        type: string
+  # Orphan-tag cleanup for PRs closed without merging.
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+# No permissions by default; each job declares what it needs.
+permissions: {}
+
+# Serialize releases: two green PRs must not race on tag creation.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Release PR on green CI
+    if: >-
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.event == 'pull_request' &&
+       github.event.workflow_run.conclusion == 'success') ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+    steps:
+      - name: Resolve bump kind from PR label
+        id: version
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            ./scripts/release/resolve-version.sh --pr "${{ inputs.pr }}" --repo "${{ github.repository }}"
+          else
+            ./scripts/release/resolve-version.sh --sha "${{ github.event.workflow_run.head_sha }}" --repo "${{ github.repository }}"
+          fi
+
+      - name: Checkout PR head
+        if: steps.version.outputs.release == 'true'
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.version.outputs.head_ref }}
+          token: ${{ secrets.RELEASE_TOKEN }}
+          fetch-depth: 0
+
+      - name: Preview release version
+        id: preview
+        if: steps.version.outputs.release == 'true'
+        run: |
+          set -euo pipefail
+          VERSION="$(./scripts/release.sh --bump "${{ steps.version.outputs.bump }}" --print-version)"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Releasing $VERSION (${{ steps.version.outputs.bump }} bump)."
+
+      - name: Skip when already released
+        id: gate
+        if: steps.version.outputs.release == 'true'
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.preview.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          current="$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          if [[ "$current" == "$VERSION" ]] && git rev-parse --verify --quiet "refs/tags/$VERSION" >/dev/null; then
+            echo "Already released ($VERSION tagged); skipping."
+            echo "released=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "released=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install pinned toolchain with mise
+        if: steps.version.outputs.release == 'true' && steps.gate.outputs.released != 'true'
+        uses: jdx/mise-action@v4
+
+      - name: Cut release
+        if: steps.version.outputs.release == 'true' && steps.gate.outputs.released != 'true'
+        run: RELEASE_VERSION="${{ steps.preview.outputs.version }}" RELEASE_YES=1 ./scripts/release.sh
+
+      - name: Validate amended tree
+        if: steps.version.outputs.release == 'true' && steps.gate.outputs.released != 'true'
+        run: mise run ci
+
+      - name: Push release commit and tag
+        if: steps.version.outputs.release == 'true' && steps.gate.outputs.released != 'true'
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.preview.outputs.version }}"
+          HEAD_REF="${{ steps.version.outputs.head_ref }}"
+          git push --force-with-lease origin "HEAD:$HEAD_REF"
+          git push origin "$VERSION"
+
+      - name: Merge release PR
+        if: steps.version.outputs.release == 'true' && steps.gate.outputs.released != 'true'
+        run: gh pr merge "${{ steps.version.outputs.pr }}" --merge
+
+  cleanup:
+    name: Delete orphan tag on unmerged close
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+    steps:
+      - name: Checkout main with tags
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          token: ${{ secrets.RELEASE_TOKEN }}
+          fetch-depth: 0
+
+      - name: Delete tag when it never reached main
+        run: ./scripts/release/cleanup-tag.sh --sha "${{ github.event.pull_request.head.sha }}"

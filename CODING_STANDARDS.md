@@ -27,6 +27,8 @@ Verbatim payload files (copied unprocessed, never containing Jinja):
 
 Keep this list in sync with the actual non-`.jinja` files under `templates/` (a regression test enforces it). `templates/licenses/` partials are Jinja includes, not verbatim copies.
 
+`.github/workflows/release.yml` and `scripts/release/` are root-only maintainer automation (PR-triggered auto-release); they never ship to generated projects, and the workflow sync test carves them out.
+
 ## Shell
 
 `*.sh` files and multiline mise tasks using bash features (`[[ ]]`, `(( ))`, arrays, process substitution) start with `#!/usr/bin/env bash` plus `set -euo pipefail`. POSIX-only tasks omit the header and rely on mise's `sh -o errexit`. Prefer `printf` over `echo`, `[[ ]]` over `[ ]`, `$(...)` over backticks, and NUL-delimited input (`git ls-files -z`, `find -print0`) over newline `| xargs`.

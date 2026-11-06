@@ -27,6 +27,10 @@ TASK_CONTRACT = frozenset(
     {"lint", "lint:python", "lint:shell", "format", "test:unit", "test:integration", "test", "ci", "clean"}
 )
 
+# Workflows that live only in root `.github/workflows/` (maintainer
+# automation that never ships to generated projects).
+ROOT_ONLY_WORKFLOWS = frozenset({"release.yml"})
+
 
 @pytest.mark.parametrize("rel_path", SYMLINKED_ROOT_PATHS)
 def test_root_file_is_symlink_into_templates(rel_path: str):
@@ -36,17 +40,23 @@ def test_root_file_is_symlink_into_templates(rel_path: str):
 
 
 def test_workflow_files_stay_in_sync():
-    """Workflow filename sets match and each pair is byte-identical (copies, not symlinks)."""
+    """Workflow filename sets match and each pair is byte-identical (copies, not symlinks).
+
+    `release.yml` is root-only maintainer automation (auto-release on green
+    PRs); it never ships to generated projects.
+    """
     root_dir = TEMPLATE_ROOT / ".github" / "workflows"
     payload_dir = TEMPLATE_ROOT / "templates" / ".github" / "workflows"
     root_names = {p.name for p in root_dir.glob("*.yml")}
     payload_names = {p.name for p in payload_dir.glob("*.yml")}
     assert root_names, f"Expected at least one workflow file in {root_dir}"
-    assert root_names == payload_names, (
-        f"Workflow sets drifted: root-only={sorted(root_names - payload_names)}, "
-        f"payload-only={sorted(payload_names - root_names)}"
+    assert payload_names == root_names - ROOT_ONLY_WORKFLOWS, (
+        f"Payload drift: payload-only={sorted(payload_names - root_names)}, "
+        f"missing={sorted(root_names - payload_names - ROOT_ONLY_WORKFLOWS)}"
     )
-    for name in sorted(root_names):
+    for name in sorted(ROOT_ONLY_WORKFLOWS):
+        assert (root_dir / name).is_file(), f"Root-only workflow missing: {name}"
+    for name in sorted(payload_names):
         root, payload = root_dir / name, payload_dir / name
         if root.read_bytes() != payload.read_bytes():
             diff = "\n".join(

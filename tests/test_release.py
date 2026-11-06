@@ -254,6 +254,7 @@ def test_root_only_scripts_are_absent(projects: ProjectRegistry):
     project = projects.render("basic")
     for rel in (
         "scripts/lib",
+        "scripts/release",
         "scripts/workflows",
         "scripts/test-workflow.sh",
         "scripts/README.md",
