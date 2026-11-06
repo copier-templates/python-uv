@@ -15,6 +15,7 @@ EXPECTED_FILES = [
     "cliff.toml",
     "mise.toml",
     "pyproject.toml",
+    "whitelist_vulture.py",
     "README.md",
     "uv.lock",
 ]

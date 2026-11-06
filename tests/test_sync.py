@@ -24,7 +24,18 @@ SYMLINKED_ROOT_PATHS = [
 
 # Task names shared by root `mise.toml` and every full-tooling generated project.
 TASK_CONTRACT = frozenset(
-    {"lint", "lint:python", "lint:shell", "format", "test:unit", "test:integration", "test", "ci", "clean"}
+    {
+        "lint",
+        "lint:python",
+        "lint:deadcode",
+        "lint:shell",
+        "format",
+        "test:unit",
+        "test:integration",
+        "test",
+        "ci",
+        "clean",
+    }
 )
 
 
