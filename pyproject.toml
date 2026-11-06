@@ -14,7 +14,7 @@ exclude = [
 
 [project]
 name = "copier-python-uv"
-version = "0.2.1"
+version = "0.2.2"
 description = "Copier template to bootstrap a Python package with uv and basic configuration"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -65,10 +65,16 @@ pythonpath = [
   "scripts",
   "tasks",
 ]
-addopts = "--durations=5 --durations-min=0.0 --tb=short --strict-markers"
+addopts = "--durations=5 --durations-min=0.0 --tb=short --strict-markers --cov=scripts --cov=tasks --cov-report=html --cov-report=term-missing"
 filterwarnings = [
   "ignore:Dirty template changes included automatically:copier._vcs.DirtyLocalWarning",
 ]
+
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
 
 [tool.ty.environment]
 python-version = "3.12"
