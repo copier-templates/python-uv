@@ -5,7 +5,7 @@ Run GitHub Actions workflows on your machine before pushing: lint them with
 
 Cutting a release is separate: `scripts/release.sh` (see `mise run release`
 and `docs/development.md`) bumps `pyproject.toml`, regenerates
-`CHANGELOG.md`, commits, and tags.
+`CHANGELOG.md`, amends, and tags.
 
 ```bash
 ./scripts/test-workflow.sh prek
