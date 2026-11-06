@@ -1,3 +1,16 @@
+## [0.2.2] - 2026-11-06
+
+### 🚀 Features
+
+- Block push when pyproject version differs from latest tag
+- Format TOML files with taplo
+- Amend release files, abort when HEAD is a previous release commit
+- Show coverage report on test runs
+
+### 🧪 Testing
+
+- Add version-tag push-gate regression tests
+- Parametrize release loops, cache copier config
 ## [0.2.1] - 2026-11-05
 
 ### 🐛 Bug Fixes
