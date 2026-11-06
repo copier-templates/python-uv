@@ -49,6 +49,10 @@ run = "uv run ruff check ."
 description = "Type-check Python with ty"
 run = "uv run ty check"
 
+[tasks."lint:deadcode"]
+description = "Detect dead code with vulture (config-first: reads [tool.vulture] paths)"
+run = "uv run vulture"
+
 [tasks."fix:python"]
 description = "Lint Python with Ruff and autofix"
 run = "uv run ruff check --fix ."
@@ -58,6 +62,7 @@ description = "Run all linters"
 depends = [
   "lint:python",
   "lint:types",
+  "lint:deadcode",
   "lint:shell",
 {%- if github_integration %}
   "lint:workflows",

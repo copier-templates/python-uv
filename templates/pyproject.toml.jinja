@@ -51,9 +51,39 @@ dev = [
   "pytest-cov",
   "ruff",
   "ty>=0.0.34",
+  "vulture>=2.16",
 {%- for dep in extra_dev_deps %}
   "{{ dep }}",
 {%- endfor %}
+]
+
+[tool.vulture]
+{%- if is_app %}
+paths = [
+  "main.py",
+  "tests",
+  "whitelist_vulture.py",
+]
+{%- else %}
+paths = [
+  "src",
+  "tests",
+  "whitelist_vulture.py",
+]
+{%- endif %}
+min_confidence = 60
+ignore_names = [
+  "test_*",
+  "*_test",
+  "conftest",
+  "main",
+]
+ignore_decorators = [
+  "@pytest.fixture",
+  "@pytest.mark.*",
+  "@*.route",
+  "@abstractmethod",
+  "@overload",
 ]
 
 
