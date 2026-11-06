@@ -121,10 +121,10 @@ def test_mise_toml_task_graph_is_always_complete(projects: ProjectRegistry):
 
 
 def test_mise_toml_ci_runs_ordered_readonly_steps(projects: ProjectRegistry):
-    """CI must run lint, format:check, hooks, test:unit, check:version-tag in order via run steps."""
+    """CI must fail fast on version drift, then run lint, format:check and tests in order."""
     tasks = mise_toml(projects.render("basic"))["tasks"]
-    assert refs(tasks["ci"]) == ["lint", "format:check", "hooks", "test:unit", "check:version-tag"]
-    assert refs(tasks["ci:full"]) == ["lint", "format:check", "hooks", "test", "check:version-tag"]
+    assert refs(tasks["ci"]) == ["check:version-tag", "lint", "format:check", "test:unit"]
+    assert refs(tasks["ci:full"]) == ["check:version-tag", "lint", "format:check", "test"]
     assert tasks["ci"]["env"]["CI"] == tasks["ci:full"]["env"]["CI"] == "true"
 
 
