@@ -50,7 +50,7 @@ The `module_name` question uses the same mechanism: `type: str`, a Jinja `defaul
 
 `tasks/lifecycle.py` is a stdlib-only script (Copier runs it with its own interpreter), invoked from the template source via `_copier_conf.src_path`. It never ships, because only `templates/` is copied.
 
-- **Inside a Git work tree**: stage everything and commit `chore: scaffold from template` (copy) or `chore: update from template` (update), only when something is staged.
+- **Inside a Git work tree**: stage everything and commit `chore: scaffold from copier template` (copy) or `chore: update from copier template` (update), only when something is staged.
 - **Outside one**: a copy runs `git init` and commits `Init commit`; an update does nothing.
 - Commits bypass hooks, since hooks are installed later by `mise run install`.
 - Then `mise run install`, and `mise run ci`.

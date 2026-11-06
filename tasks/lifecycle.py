@@ -14,8 +14,8 @@ from collections.abc import Callable
 from pathlib import Path
 
 INIT_MESSAGE = "Init commit"
-SCAFFOLD_MESSAGE = "chore: scaffold from template"
-UPDATE_MESSAGE = "chore: update from template"
+SCAFFOLD_MESSAGE = "chore: scaffold from copier template"
+UPDATE_MESSAGE = "chore: update from copier template"
 GENERATED_FILES = ("uv.lock",)
 
 

@@ -78,7 +78,7 @@ The following tools must be installed:
 
    The template runs `uv sync` after rendering and commits the result,
    including `uv.lock`: an `Init commit` in a new directory, or
-   `chore: scaffold from template` inside an existing repository.
+   `chore: scaffold from copier template` inside an existing repository.
 
 ### ⚠️ Tasks Behavior with Different Copier Commands
 
