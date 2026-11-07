@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Shared helpers for local GitHub Actions workflow testing.
-# Sourced by scripts/test-workflow.sh and per-workflow configs. Not executed directly.
+# Sourced by scripts/maintainer/test-workflow.sh and per-workflow configs. Not executed directly.
 set -euo pipefail
 
 SCRIPTS_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"

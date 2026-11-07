@@ -1,8 +1,8 @@
 """Release automation: version resolution, orphan-tag cleanup, workflow pins.
 
-`scripts/release/*.sh` holds the logic (unit-tested here with a stub `gh`);
-`.github/workflows/release.yml` is thin wiring (pinned by text assertions).
-The workflow is root-only: it must never render into generated projects.
+`scripts/maintainer/release/*.sh` holds the logic (unit-tested here with a
+stub `gh`); `.github/workflows/release.yml` is thin wiring (pinned by text
+assertions). The workflow is root-only: it must never render into generated projects.
 """
 
 from __future__ import annotations
@@ -18,8 +18,8 @@ import pytest
 from _projects import GIT, TEMPLATE_ROOT, ProjectRegistry, git
 
 RELEASE_WORKFLOW = TEMPLATE_ROOT / ".github" / "workflows" / "release.yml"
-RESOLVE_SCRIPT = TEMPLATE_ROOT / "scripts" / "release" / "resolve-version.sh"
-CLEANUP_SCRIPT = TEMPLATE_ROOT / "scripts" / "release" / "cleanup-tag.sh"
+RESOLVE_SCRIPT = TEMPLATE_ROOT / "scripts" / "maintainer" / "release" / "resolve-version.sh"
+CLEANUP_SCRIPT = TEMPLATE_ROOT / "scripts" / "maintainer" / "release" / "cleanup-tag.sh"
 
 
 def _write_stub_gh(bin_dir: Path) -> None:
@@ -297,8 +297,10 @@ def test_release_job_uses_bot_identity():
 
 def test_release_job_calls_release_scripts():
     text = _workflow_text()
-    assert "scripts/release/resolve-version.sh" in text
-    assert "scripts/release/cleanup-tag.sh" in text
+    assert "scripts/maintainer/release/resolve-version.sh" in text
+    assert "scripts/maintainer/release/cleanup-tag.sh" in text
+    assert "scripts/release/resolve-version.sh" not in text
+    assert "scripts/release/cleanup-tag.sh" not in text
     assert "./scripts/release.sh" in text
     assert "--print-version" in text
     assert "mise run ci" in text
@@ -326,4 +328,5 @@ def test_release_workflow_is_root_only(projects: ProjectRegistry):
     assert not (TEMPLATE_ROOT / "templates" / ".github" / "workflows" / "release.yml").exists()
     project = projects.render("github")
     assert not (project / ".github" / "workflows" / "release.yml").exists()
+    assert not (project / "scripts" / "maintainer").exists()
     assert not (project / "scripts" / "release").exists()

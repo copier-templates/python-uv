@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Local-test profile for the scheduled prek auto-update workflow.
-# Sourced by scripts/test-workflow.sh. Copy this file to add a new workflow.
+# Sourced by scripts/maintainer/test-workflow.sh. Copy this file to add a new workflow.
 # shellcheck disable=SC2034  # all vars are consumed by the sourcing runner
 set -euo pipefail
 

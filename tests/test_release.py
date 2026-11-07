@@ -263,9 +263,9 @@ def test_main_branch_passes_branch_gate(tmp_path: Path):
 
 
 ACT_IMAGE_SCRIPTS = (
-    "scripts/workflows/prek.sh",
-    "scripts/workflows/test.sh",
-    "scripts/test-workflow.sh",
+    "scripts/maintainer/workflows/prek.sh",
+    "scripts/maintainer/workflows/test.sh",
+    "scripts/maintainer/test-workflow.sh",
 )
 
 
@@ -297,19 +297,25 @@ def test_generated_readme_documents_release(projects: ProjectRegistry):
 
 
 def test_root_only_scripts_are_absent(projects: ProjectRegistry):
-    """Template-dev scripts must not leak; the payload release files must ship."""
+    """Maintainer scripts must not leak; the payload release files must ship."""
     project = projects.render("basic")
     for rel in (
+        "scripts/maintainer",
+        "scripts/README.md",
         "scripts/lib/common.sh",
         "scripts/lib/inject_step.py",
         "scripts/release",
         "scripts/workflows",
         "scripts/test-workflow.sh",
-        "scripts/README.md",
         "scripts/update_python_versions.py",
     ):
         assert not (project / rel).exists(), f"Leaked template-dev file: {rel}"
     lib_entries = {entry.name for entry in (project / "scripts" / "lib").iterdir()}
     assert lib_entries == {"release-common.sh"}, f"Unexpected scripts/lib payload: {sorted(lib_entries)}"
-    for rel in ("scripts/release.sh", "scripts/release_version.py", "scripts/lib/release-common.sh"):
+    for rel in (
+        "scripts/release.sh",
+        "scripts/check-version-tag.sh",
+        "scripts/release_version.py",
+        "scripts/lib/release-common.sh",
+    ):
         assert (project / rel).is_file(), f"Missing shipped release file: {rel}"

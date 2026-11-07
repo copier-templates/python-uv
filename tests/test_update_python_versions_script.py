@@ -1,4 +1,4 @@
-"""Unit tests for `scripts/update_python_versions.py` (network stubbed, never online)."""
+"""Unit tests for `scripts/maintainer/update_python_versions.py` (network stubbed, never online)."""
 
 from __future__ import annotations
 

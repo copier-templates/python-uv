@@ -48,9 +48,9 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            ./scripts/release/resolve-version.sh --pr "${{ inputs.pr }}" --repo "${{ github.repository }}"
+            ./scripts/maintainer/release/resolve-version.sh --pr "${{ inputs.pr }}" --repo "${{ github.repository }}"
           else
-            ./scripts/release/resolve-version.sh --sha "${{ github.event.workflow_run.head_sha }}" --repo "${{ github.repository }}"
+            ./scripts/maintainer/release/resolve-version.sh --sha "${{ github.event.workflow_run.head_sha }}" --repo "${{ github.repository }}"
           fi
 
       - name: Checkout PR head
@@ -129,4 +129,4 @@ jobs:
           fetch-depth: 0
 
       - name: Delete tag when it never reached main
-        run: ./scripts/release/cleanup-tag.sh --sha "${{ github.event.pull_request.head.sha }}"
+        run: ./scripts/maintainer/release/cleanup-tag.sh --sha "${{ github.event.pull_request.head.sha }}"

@@ -18,7 +18,7 @@ from typing import Any
 
 MIN_PYTHON = (3, 12)
 API_URL = "https://endoflife.date/api/python.json"
-BEGIN_MARKER = "# python-version-choices: begin (managed by scripts/update_python_versions.py, do not edit)"
+BEGIN_MARKER = "# python-version-choices: begin (managed by scripts/maintainer/update_python_versions.py, do not edit)"
 END_MARKER = "# python-version-choices: end"
 DEFAULT_TARGET = "copier.yaml"
 TIMEOUT_SECONDS = 30

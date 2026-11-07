@@ -2,12 +2,12 @@
 # Locally test a GitHub Actions workflow: lint it, then run the real job in an
 # Ubuntu container via `act`, exactly as CI would. See scripts/README.md.
 #
-#   scripts/test-workflow.sh <name> [--event EVENT] [--job JOB]
+#   scripts/maintainer/test-workflow.sh <name> [--event EVENT] [--job JOB]
 #                            [--image IMAGE] [--amd64] [--list] [--help]
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=scripts/lib/common.sh
+# shellcheck source=scripts/maintainer/lib/common.sh
 source "$SCRIPT_DIR/lib/common.sh"
 
 usage() {

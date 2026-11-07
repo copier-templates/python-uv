@@ -10,15 +10,31 @@ and `docs/development.md`) bumps `pyproject.toml`, regenerates
 `templates/scripts/lib/release-common.sh`; both release scripts source those
 payload files, and the root `scripts/` entries are symlinks into `templates/`.
 
-`scripts/release/` holds the CI release automation (root-only, never shipped
-to generated projects): `resolve-version.sh` maps a PR's `release:*` label
-to a bump kind, `cleanup-tag.sh` deletes orphan tags of unmerged PRs. Both
-are plain CLIs with `--help`; the release workflow wires them together.
+`scripts/maintainer/release/` holds the CI release automation (root-only,
+never shipped to generated projects): `resolve-version.sh` maps a PR's
+`release:*` label to a bump kind, `cleanup-tag.sh` deletes orphan tags of
+unmerged PRs. Both are plain CLIs with `--help`; the release workflow wires
+them together.
 
 ```bash
-./scripts/test-workflow.sh prek
-./scripts/test-workflow.sh --list
+./scripts/maintainer/test-workflow.sh prek
+./scripts/maintainer/test-workflow.sh --list
 ```
+
+## Layout
+
+`scripts/` splits into two tiers:
+
+- **Payload adapters** at the top level: `release.sh`, `check-version-tag.sh`,
+  `release_version.py` and `lib/release-common.sh` are relative symlinks into
+  `templates/scripts/`, so the shipped Payload is the single source of truth.
+  Only `README.md` and `maintainer/` sit beside them.
+- **Root-only tooling** under `scripts/maintainer/`: local workflow testing
+  (`test-workflow.sh`, `workflows/`, `lib/`), CI release automation (`release/`)
+  and `update_python_versions.py`. None of it renders into generated projects.
+
+Generated projects receive the Payload copies at `scripts/` and never see
+`scripts/maintainer/`.
 
 ## Prerequisites
 
@@ -39,12 +55,12 @@ daemon is down. Missing tools abort with an install hint.
 ## Usage
 
 ```bash
-scripts/test-workflow.sh <name> [--event EVENT] [--job JOB] [--image IMAGE] [--amd64]
-scripts/test-workflow.sh --list
-scripts/test-workflow.sh --help
+scripts/maintainer/test-workflow.sh <name> [--event EVENT] [--job JOB] [--image IMAGE] [--amd64]
+scripts/maintainer/test-workflow.sh --list
+scripts/maintainer/test-workflow.sh --help
 ```
 
-- `<name>` selects `scripts/workflows/<name>.sh`, which pins the workflow file,
+- `<name>` selects `scripts/maintainer/workflows/<name>.sh`, which pins the workflow file,
   trigger event, job, and container image. `--event`, `--job`, `--image`
   override the profile for one-off runs without editing files.
 - `--amd64` forces Intel emulation on Apple Silicon (slower; default runs
@@ -65,7 +81,7 @@ What a run does:
 Copy the prek profile and adjust four variables:
 
 ```bash
-cp scripts/workflows/prek.sh scripts/workflows/my-job.sh
+cp scripts/maintainer/workflows/prek.sh scripts/maintainer/workflows/my-job.sh
 ```
 
 ```bash
@@ -76,7 +92,7 @@ ACT_IMAGE="catthehacker/ubuntu:act-24.04"      # optional container image
 # ACT_EXTRA_ARGS="--matrix os:ubuntu-latest"   # optional raw `act` flags
 ```
 
-Then `./scripts/test-workflow.sh my-job`. No runner changes needed.
+Then `./scripts/maintainer/test-workflow.sh my-job`. No runner changes needed.
 
 ### If your job needs git inside the container
 
@@ -90,7 +106,7 @@ WORKFLOW_SHIM_SNIPPET="$SCRIPTS_DIR/workflows/prek-shim.yml"
 ```
 
 The snippet (a plain YAML step fragment) is injected as the first step of the
-tested job **in the temp copy only**, via `scripts/lib/inject_step.py`, and the
+tested job **in the temp copy only**, via `scripts/maintainer/lib/inject_step.py`, and the
 temp dir is deleted afterwards. Write your own snippet file if your job needs
 different setup; keep the `[act-local]` prefix so such steps are recognizable.
 
@@ -105,13 +121,13 @@ different setup; keep the `[act-local]` prefix so such steps are recognizable.
 
 ## Python version choices: `update_python_versions.py`
 
-`scripts/update_python_versions.py` refreshes the `python_version.choices`
+`scripts/maintainer/update_python_versions.py` refreshes the `python_version.choices`
 mapping in `copier.yaml` from <https://endoflife.date/api/python.json>. It keeps
 released CPython 3.x cycles at or above 3.12 (cycles without a `latest` release
 are skipped) and writes them newest first.
 
 The choices live between the marker comments
-`# python-version-choices: begin (managed by scripts/update_python_versions.py, do not edit)`
+`# python-version-choices: begin (managed by scripts/maintainer/update_python_versions.py, do not edit)`
 and `# python-version-choices: end` in `copier.yaml`. The script rewrites only
 that block. Never hand-edit lines between the markers: the next run overwrites
 them. If a marker is missing or duplicated, the script exits non-zero and leaves
@@ -134,6 +150,6 @@ projects (see the Copier note below).
 
 ## Copier note
 
-This `scripts/` folder is template-developer tooling: it lives outside
+The `scripts/maintainer/` tooling is template-developer tooling: it lives outside
 `templates/` (`_subdirectory: templates` in `copier.yaml`) and is covered by
 `tests/test_exclusions.py`, so it never lands in generated projects.

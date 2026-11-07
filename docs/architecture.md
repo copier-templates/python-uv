@@ -20,8 +20,8 @@ The main template configuration file that defines:
 `python_version` is a `str` question declared directly after `project_type` and before `module_name`.
 
 - **Default**: `3.12` (the minimum supported Python).
-- **Choices**: released CPython 3.x cycles at or above 3.12, newest first. They live in a marker block delimited by `# python-version-choices: begin (managed by scripts/update_python_versions.py, do not edit)` and `# python-version-choices: end`.
-- **Maintenance**: `scripts/update_python_versions.py` (run via `mise run update:python-versions`) fetches <https://endoflife.date/api/python.json> and rewrites only the lines between the markers. Never hand-edit between the markers; the script refuses to write when a marker is missing or duplicated, and it is idempotent.
+- **Choices**: released CPython 3.x cycles at or above 3.12, newest first. They live in a marker block delimited by `# python-version-choices: begin (managed by scripts/maintainer/update_python_versions.py, do not edit)` and `# python-version-choices: end`.
+- **Maintenance**: `scripts/maintainer/update_python_versions.py` (run via `mise run update:python-versions`) fetches <https://endoflife.date/api/python.json> and rewrites only the lines between the markers. Never hand-edit between the markers; the script refuses to write when a marker is missing or duplicated, and it is idempotent.
 - **Consumers**:
   - `_tasks` runs `uv python install <version>` before `uv sync`.
   - `templates/mise.toml.jinja` pins `python = "<version>"`.
@@ -91,7 +91,8 @@ License partials under `templates/licenses/` are Jinja includes excluded from co
 │   └── {{ _copier_conf.answers_file }}.jinja  # Answers file
 │
 ├── tasks/lifecycle.py           # Post-copy Git lifecycle script (never ships)
-├── scripts/                     # Maintainer scripts (never ships)
+├── scripts/                     # Payload adapters: symlinks into templates/scripts/
+├── scripts/maintainer/          # Root-only maintainer tooling (never ships)
 ├── examples/                    # Sample data files (never ships)
 │   └── config-basic.yml
 ├── tests/                       # Test suite (never ships; see Testing)
@@ -109,7 +110,7 @@ guarded by `tests/test_sync.py`; see [ADR 0001](adr/0001-symlink-root-tooling-to
 ## Excluded Directories
 
 Only `templates/` is copied to generated projects. Everything outside it —
-`examples/`, `tests/`, `docs/`, `scripts/`, `tasks/`, `copier.yaml` itself — is
+`examples/`, `tests/`, `docs/`, `scripts/` (adapters plus `maintainer/`), `tasks/`, `copier.yaml` itself — is
 template tooling and never lands in generated projects.
 
 Within `templates/`, `licenses/` partials are excluded from copy via `_exclude`

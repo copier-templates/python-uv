@@ -175,7 +175,7 @@ run = "./scripts/release.sh"
 
 [tasks."update:python-versions"]
 description = "Refresh Python version choices in copier.yaml from endoflife.date"
-run = "uv run scripts/update_python_versions.py"
+run = "uv run scripts/maintainer/update_python_versions.py"
 
 [tasks.clean]
 description = "Clean build and cache artifacts"

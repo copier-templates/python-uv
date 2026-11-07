@@ -219,6 +219,7 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
-# Template-dev tooling: keep the local workflow-test helpers tracked.
+# Template-dev tooling: keep the payload adapter and maintainer helpers tracked.
 # (The `lib/` rule above targets packaging build dirs, not this.)
 !scripts/lib/
+!scripts/maintainer/lib/

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Local-test profile for the CI test workflow.
-# Sourced by scripts/test-workflow.sh. See scripts/README.md.
+# Sourced by scripts/maintainer/test-workflow.sh. See scripts/README.md.
 # shellcheck disable=SC2034  # all vars are consumed by the sourcing runner
 set -euo pipefail
 

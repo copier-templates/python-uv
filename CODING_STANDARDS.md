@@ -29,7 +29,7 @@ Verbatim payload files (copied unprocessed, never containing Jinja):
 
 Keep this list in sync with the actual non-`.jinja` files under `templates/` (a regression test enforces it). `templates/licenses/` partials are Jinja includes, not verbatim copies.
 
-`templates/scripts/release_version.py` owns all version math and `templates/scripts/lib/release-common.sh` owns the shared logging; both release scripts delegate to them. `.github/workflows/release.yml` and `scripts/release/` are root-only maintainer automation (PR-triggered auto-release); they never ship to generated projects, and the workflow sync test carves them out.
+`templates/scripts/release_version.py` owns all version math and `templates/scripts/lib/release-common.sh` owns the shared logging; both release scripts delegate to them. `.github/workflows/release.yml` and `scripts/maintainer/` are root-only maintainer automation (PR-triggered auto-release); they never ship to generated projects, and the workflow sync test carves them out.
 
 ## Shell
 
