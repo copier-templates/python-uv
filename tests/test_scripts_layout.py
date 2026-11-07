@@ -25,7 +25,6 @@ PAYLOAD_FILES = (
 MAINTAINER_MOVES = (
     ("scripts/maintainer/release", "scripts/release"),
     ("scripts/maintainer/lib/common.sh", "scripts/lib/common.sh"),
-    ("scripts/maintainer/lib/inject_step.py", "scripts/lib/inject_step.py"),
     ("scripts/maintainer/workflows", "scripts/workflows"),
     ("scripts/maintainer/test-workflow.sh", "scripts/test-workflow.sh"),
     ("scripts/maintainer/update_python_versions.py", "scripts/update_python_versions.py"),

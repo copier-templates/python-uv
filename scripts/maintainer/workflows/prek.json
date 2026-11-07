@@ -1,0 +1,8 @@
+{
+  "workflow_file": ".github/workflows/prek.yml",
+  "event": "workflow_dispatch",
+  "job": "auto-update",
+  "image": "catthehacker/ubuntu:act-24.04",
+  "needs_git_shim": true,
+  "shim_snippet": "prek-shim.yml"
+}

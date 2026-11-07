@@ -1,0 +1,8 @@
+{
+  "workflow_file": ".github/workflows/test.yml",
+  "event": "pull_request",
+  "job": "test",
+  "image": "catthehacker/ubuntu:act-24.04",
+  "needs_git_shim": false,
+  "shim_snippet": null
+}

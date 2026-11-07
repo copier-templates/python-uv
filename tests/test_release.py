@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 from pathlib import Path
@@ -262,23 +263,27 @@ def test_main_branch_passes_branch_gate(tmp_path: Path):
     assert (repo / "pyproject.toml").read_text(encoding="utf-8").strip().endswith('version = "0.1.0"')
 
 
-ACT_IMAGE_SCRIPTS = (
-    "scripts/maintainer/workflows/prek.sh",
-    "scripts/maintainer/workflows/test.sh",
-    "scripts/maintainer/test-workflow.sh",
-)
+ACT_IMAGE = "catthehacker/ubuntu:act-24.04"
+MAINTAINER = TEMPLATE_ROOT / "scripts" / "maintainer"
+PROFILE_DIR = MAINTAINER / "workflows"
+ACT_PROFILES = ("prek", "test")
 
 
-@pytest.mark.parametrize("rel", ACT_IMAGE_SCRIPTS, ids=["prek", "test", "test-workflow"])
-def test_act_image_reference_is_canonical(rel: str):
-    """All ACT-image references must use the same registryless image."""
-    canonical = 'ACT_IMAGE="catthehacker/ubuntu:act-24.04"'
-    script = TEMPLATE_ROOT / rel
-    assert script.is_file(), f"Missing script: {script}"
-    content = script.read_text()
-    if "ACT_IMAGE=" in content:
-        assert canonical in content, f"Non-canonical ACT_IMAGE in {script}"
-    assert "ghcr.io" not in content, f"ghcr.io reference in {script}"
+@pytest.mark.parametrize("name", ACT_PROFILES)
+def test_act_image_reference_is_canonical(name: str):
+    """Every JSON profile must use the same registryless ACT image."""
+    profile = PROFILE_DIR / f"{name}.json"
+    assert profile.is_file(), f"Missing workflow profile: {profile}"
+    raw = profile.read_text()
+    assert json.loads(raw)["image"] == ACT_IMAGE, f"Non-canonical ACT image in {profile}"
+    assert "ghcr.io" not in raw, f"ghcr.io reference in {profile}"
+
+
+def test_sourced_profiles_and_inject_step_are_gone():
+    """Profiles are JSON data: the `.sh` profiles and the injector are deleted."""
+    for name in ACT_PROFILES:
+        assert not (PROFILE_DIR / f"{name}.sh").exists(), f"Legacy sourced profile remains: {name}.sh"
+    assert not (MAINTAINER / "lib" / "inject_step.py").exists(), "lib/inject_step.py must be owned by workflow_test.py"
 
 
 def test_rendered_mise_has_release_task_and_gum(projects: ProjectRegistry):
