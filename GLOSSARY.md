@@ -2,41 +2,140 @@
 
 Domain terms for this Copier template. Use them as written.
 
-**Payload**
-: The contents of `templates/`, the only part Copier copies into generated projects.
+Implementation details live in `docs/architecture.md`; decisions live in `docs/adr/`.
 
-**Verbatim payload**
-: Payload files copied without Jinja rendering. Canonical list: [Template contract](CODING_STANDARDS.md#template-contract).
+## Language
 
-**Root tooling**
-: Files at the repo root that develop or release this template (symlinks into the payload per [Template contract](CODING_STANDARDS.md#template-contract), plus `mise.toml`, workflows). Never shipped unless they are also in the payload.
+### Template and payload
 
-**Symlink**
-: A root tooling file that points into `templates/`, the single source of truth. See [ADR 0001](docs/adr/0001-symlink-root-tooling-to-payload.md).
+**Template repository**:
+The repository that develops the Copier template and its history.
+_Avoid_: template (alone)
 
-**Mirror**
-: A byte-identical copy of a payload file kept at the root. Used only for `.github/workflows/*.yml`, which Actions does not reliably load through a symlink.
+**Generated project**:
+A project Copier produces from the payload and answers.
+_Avoid_: output, scaffold (noun)
 
-**Answer**
-: A value given for a question in `copier.yaml`. Recorded in `.copier-answers.yml` unless the question is a render fact.
+**Payload**:
+The files that ship into every generated project.
+_Avoid_: template files
 
-**Render fact**
-: A hidden `when: false` question whose value is computed from answers (for example `is_app`, `is_lib`, `is_package`). Re-derived on every render; omitted from the answers file.
+**Verbatim payload**:
+Payload files copied without Jinja rendering.
+_Avoid_: static files
 
-**Render**
-: Copier producing a project from `templates/` and the answers. Tests render through `projects.render("<variant>")`.
+**Symlink**:
+A root tooling file that points into the payload as its single source of truth.
+_Avoid_: link
 
-**Variant**
-: A named set of answers in `VARIANTS` (`tests/_projects.py`), rendered once per test session.
+**Mirror**:
+A root file kept byte-identical to its payload counterpart.
+_Avoid_: byte copy, copy
 
-**Task variant**
-: A variant listed in `TASK_VARIANTS`, rendered with `copier.yaml` `_tasks`. Other variants render with `skip_tasks=True`.
+**Root tooling**:
+Files at the repository root that develop or release the template and never ship unless also in the payload.
+_Avoid_: root files
 
-**Lifecycle script**
-: `tasks/lifecycle.py`, run from `_tasks` after copy or update. Makes the Git commit or init and runs `mise run install` and `mise run ci`.
+**Template tooling**:
+All non-shipping development files outside the payload.
+_Avoid_: tooling
 
-**Task contract**
-: The mise task names that both root `mise.toml` and generated projects expose, pinned as `TASK_CONTRACT` in `tests/test_sync.py`.
+**Maintainer tooling**:
+Root-only automation that never ships to generated projects.
+_Avoid_: scripts (alone)
 
-**Gate**
-: `mise run ci`, the check that must be green before delivery ([AGENTS.md](AGENTS.md)).
+**Template contract**:
+The task names every generated project must expose.
+_Avoid_: mise contract
+
+### Answers and rendering
+
+**Answer**:
+A value given for a template question.
+_Avoid_: input, option
+
+**Answers file**:
+The record of answers kept in each generated project for future updates.
+_Avoid_: answers (alone)
+
+**Render fact**:
+A value derived from answers and re-derived on every render, never stored.
+_Avoid_: computed fact, derived answer
+
+**Render**:
+Copier producing a project from the payload and answers.
+_Avoid_: generate, scaffold (verb)
+
+**Update**:
+Replaying a generated project against a newer template version.
+_Avoid_: upgrade, sync (verb)
+
+**Project type**:
+Whether a generated project is an application, a packaged application, or a library.
+_Avoid_: project kind
+
+**Variant**:
+A named set of answers used to render a test project.
+_Avoid_: fixture, example
+
+**Task variant**:
+A variant rendered with post-copy tasks enabled.
+_Avoid_: full render
+
+### Validation
+
+**Validation suite**:
+The tests that validate the template by rendering projects.
+_Avoid_: test suite, unit tests (alone)
+
+**Payload tests**:
+The tests that ship inside generated projects.
+_Avoid_: template tests, generated tests
+
+**Lifecycle script**:
+The post-copy script that initializes Git and verifies the new project.
+_Avoid_: post-copy hook, git script
+
+**Gate**:
+The pre-push check that must stay green before delivery.
+_Avoid_: CI (alone), checks
+
+**Delivery gate**:
+Green Gate plus reviewer sign-off required before delivery.
+_Avoid_: gate (for the full process), approval
+
+### Release
+
+**Release**:
+A versioned bump with changelog, commit amend, and tag, without pushing.
+_Avoid_: version bump, tag (verb)
+
+**Auto-release**:
+The CI job that releases a Release PR after green checks.
+_Avoid_: automatic release, bot release
+
+**Release PR**:
+A pull request carrying exactly one release label, the only kind CI will release.
+_Avoid_: version PR
+
+**Release label**:
+The label that decides the version bump kind.
+_Avoid_: bump label, version label
+
+**Orphan tag**:
+A release tag left behind by a PR closed without merging.
+_Avoid_: stale tag, dangling tag
+
+### Agent workflow
+
+**Role**:
+A named agent responsibility with its own rules.
+_Avoid_: agent, persona
+
+**Orchestrator**:
+The role that plans, dispatches workers, and integrates their commits without editing files directly.
+_Avoid_: lead, coordinator
+
+**Worker**:
+A role that works alone on an isolated branch or worktree and hands off to the orchestrator.
+_Avoid_: subagent, helper
