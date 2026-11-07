@@ -223,3 +223,6 @@ Temporary Items
 # (The `lib/` rule above targets packaging build dirs, not this.)
 !scripts/lib/
 !scripts/maintainer/lib/
+# Workflow-test profiles are JSON data; keep them tracked even when a
+# contributor-local global gitignore excludes *.json.
+!scripts/maintainer/workflows/*.json

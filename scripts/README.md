@@ -1,7 +1,9 @@
 # Local workflow testing
 
 Run GitHub Actions workflows on your machine before pushing: lint them with
-`actionlint`, then execute the real job in an Ubuntu container via `act`.
+`actionlint`, then execute the real job in an Ubuntu container via `act`. The
+harness is a stdlib-only Python module (`scripts/maintainer/workflow_test.py`);
+`scripts/maintainer/test-workflow.sh` is just a thin `exec` adapter.
 
 Cutting a release is separate: `scripts/release.sh` (see `mise run release`
 and `docs/development.md`) bumps `pyproject.toml`, regenerates
@@ -30,10 +32,11 @@ them together.
   `templates/scripts/`, so the shipped Payload is the single source of truth.
   Only `README.md` and `maintainer/` sit beside them.
 - **Root-only tooling** under `scripts/maintainer/`: local workflow testing
-  (`test-workflow.sh`, `workflows/`), CI release automation (`release/`) and
-  `update_python_versions.py`. `lib/` holds helpers shared across that tooling
-  (`common.sh` logging/die preamble, `inject_step.py`). None of it renders into
-  generated projects.
+  (`test-workflow.sh` adapter, `workflow_test.py` harness, `workflows/` JSON
+  profiles and YAML snippets), CI release automation (`release/`) and
+  `update_python_versions.py`. `lib/common.sh` holds the logging/die/need_cmd
+  preamble shared by the release CLIs. None of it renders into generated
+  projects.
 
 Generated projects receive the Payload copies at `scripts/` and never see
 `scripts/maintainer/`.
@@ -45,7 +48,7 @@ Generated projects receive the Payload copies at `scripts/` and never see
 | `docker` CLI + daemon | containers for `act` | `brew install docker` + `colima start` |
 | `act` | runs workflows locally | `mise install` |
 | `actionlint` | static workflow lint (fast fail gate) | `mise install` |
-| `python3` | scratch-copy patching | preinstalled on macOS |
+| `python3` (3.9+) | runs the stdlib harness | preinstalled on macOS |
 
 The script finds a working `docker` on its own (including the Homebrew one when
 a version-manager shim shadows it) and starts `colima` automatically if the
@@ -62,39 +65,59 @@ scripts/maintainer/test-workflow.sh --list
 scripts/maintainer/test-workflow.sh --help
 ```
 
-- `<name>` selects `scripts/maintainer/workflows/<name>.sh`, which pins the workflow file,
-  trigger event, job, and container image. `--event`, `--job`, `--image`
-  override the profile for one-off runs without editing files.
+- `<name>` selects `scripts/maintainer/workflows/<name>.json`, which pins the
+  workflow file, trigger event, job, and container image. `--event`, `--job`,
+  `--image` override the profile for one-off runs without editing files.
 - `--amd64` forces Intel emulation on Apple Silicon (slower; default runs
   native arm64, which is fine for Python/shell jobs).
-- Exit code mirrors the container run: `0` = job succeeded.
+- `ACT_EXTRA_ARGS` appends extra `act` flags (word-split, so keep it to simple
+  flags without spaces), after the profile and `--amd64` arguments.
+- Exit code is `0` only when `act` exits `0` and its log reports
+  `Job succeeded`; a failed or unmarked run exits nonzero.
 
 What a run does:
 
 1. Lints the workflow file with `actionlint` (fails fast, no containers needed).
-2. Copies `.github/workflows/*.yml` to a temp dir and runs `act` against the
-   copy, so local-only patches can never leak into the repo (there is even a
-   safety check that aborts if `ACT-LOCAL` markers appear in the real file).
+2. Copies top-level `.github/workflows/*.yml` to a temp dir and runs `act`
+   against the copy, so local-only patches can never leak into the repo (there
+   is even a safety check that aborts if `ACT-LOCAL` markers appear in the real
+   file).
 3. Streams container output live, saves the full log to a temp file (path is
    printed), then prints a per-step summary.
 
 ## Adding a new workflow
 
-Copy the prek profile and adjust four variables:
+Copy the prek profile and adjust the JSON data:
 
 ```bash
-cp scripts/maintainer/workflows/prek.sh scripts/maintainer/workflows/my-job.sh
+cp scripts/maintainer/workflows/prek.json scripts/maintainer/workflows/my-job.json
 ```
 
-```bash
-WORKFLOW_FILE=".github/workflows/my-job.yml"  # required
-WORKFLOW_EVENT="pull_request"                  # required: any trigger in the file
-WORKFLOW_JOB="build"                           # optional: empty runs the whole event
-ACT_IMAGE="catthehacker/ubuntu:act-24.04"      # optional container image
-# ACT_EXTRA_ARGS="--matrix os:ubuntu-latest"   # optional raw `act` flags
+```json
+{
+  "workflow_file": ".github/workflows/my-job.yml",
+  "event": "pull_request",
+  "job": "build",
+  "image": "catthehacker/ubuntu:act-24.04",
+  "needs_git_shim": false,
+  "shim_snippet": null,
+  "extra_args": []
+}
 ```
+
+- `workflow_file` (required, string) is the repo-relative workflow path.
+- `event` (required, string) must be a trigger in the workflow file.
+- `job` (required, string) selects one job; use `""` to run the whole event.
+- `image` (required, string) is the container for `ubuntu-latest` jobs.
+- `needs_git_shim` (required, boolean) enables the git shim.
+- `shim_snippet` (required, string or `null`) names a YAML snippet beside the
+  profile; `null` when `needs_git_shim` is `false`.
+- `extra_args` (optional, list of strings, default `[]`) adds raw `act` flags,
+  e.g. `["--matrix", "os:ubuntu-latest"]`.
 
 Then `./scripts/maintainer/test-workflow.sh my-job`. No runner changes needed.
+`workflow_test.py` owns profile loading and the run; the JSON files are data
+only.
 
 ### If your job needs git inside the container
 
@@ -102,14 +125,16 @@ Then `./scripts/maintainer/test-workflow.sh my-job`. No runner changes needed.
 container runs as root (git "dubious ownership" refusal). Jobs that shell out
 to `git` need the same shim the prek profile uses:
 
-```bash
-WORKFLOW_NEEDS_GIT_SHIM="yes"
-WORKFLOW_SHIM_SNIPPET="$SCRIPTS_DIR/workflows/prek-shim.yml"
+```json
+{
+  "needs_git_shim": true,
+  "shim_snippet": "prek-shim.yml"
+}
 ```
 
-The snippet (a plain YAML step fragment) is injected as the first step of the
-tested job **in the temp copy only**, via `scripts/maintainer/lib/inject_step.py`, and the
-temp dir is deleted afterwards. Write your own snippet file if your job needs
+`shim_snippet` names a YAML step fragment beside the profile. The harness
+injects it as the first step of the tested job **in the temp copy only** and
+deletes the temp dir afterwards. Write your own snippet file if your job needs
 different setup; keep the `[act-local]` prefix so such steps are recognizable.
 
 ## Known local-only differences
