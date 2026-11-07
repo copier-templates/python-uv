@@ -7,7 +7,7 @@ Copier template for Python + `uv`, not an app. `templates/` is the payload (`_su
 Run every command through mise (toolchain pinned in `mise.toml`): other commands can be invoked only if mise task cannot handle them.
 Tight loop: `mise run ci` green before delivery.
 Work on the orchestrator-assigned isolated branch or worktree; never push — the orchestrator owns cleanup and fast-forward rebase. Branch names follow `feat|hotfix/issue-<n>-short-desc` and always merge to `main` (no develop or release branches). Keep `prek` hooks in sync with mise tasks.
-Releases are human-run (`mise run release`); agents never bump versions, tag, or push. Exception: `@releaser` may open a label-marked release PR (no bump/tag/push — the CI release job in `.github/workflows/release.yml` owns those once gates pass).
+Local releases are human-run (`mise run release`); agents never bump versions, tag, or push. Exception: `@releaser` may open a label-marked release PR (no bump/tag/push — the CI release job in `.github/workflows/release.yml` cuts, validates, pushes, and merges the release once gates pass).
 Split: docs-only/small changes run single-shot; any `templates/` change runs `@tester` → `@coder` → `@reviewer` with a matching `tests/` regression test.
 Workers never spawn sub-agents; `@reviewer` stays read-only. For orchestrator prefer `muse-spark-1.3` at `xhigh`, else `claude-opus-5.5` (or latest `opus`), else the tool default. Never pin a model in repo files.
 

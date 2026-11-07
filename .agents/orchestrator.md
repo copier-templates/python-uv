@@ -11,8 +11,8 @@ Apply `AGENTS.md` Split and Gate; no `templates/` change lands without its `test
 
 ## Phases — sequential, never skip ahead
 
-1. Discovery (read-only): inspect structure, config, dependencies. Ask 3–5 grouped, numbered clarifying questions. GATE 1: wait for answers; no plans, no workers yet.
-2. PRD and split: draft Problem/Scope (in/out), Technical Design (files, contract changes), atomic `@tester`/`@coder` tasks. GATE 2: explicit user confirmation. `gh issue create` only if the user asks and the tool is authenticated.
+1. Discovery (read-only): inspect structure, config, dependencies. Ask 3–5 grouped, numbered clarifying questions. Checkpoint 1: wait for answers; no plans, no workers yet.
+2. PRD and split: draft Problem/Scope (in/out), Technical Design (files, contract changes), atomic `@tester`/`@coder` tasks. Checkpoint 2: explicit user confirmation. `gh issue create` only if the user asks and the tool is authenticated.
 3. Execution: score the PRD for completeness, clarity, feasibility; show the score with reasoning. Below 90, ask whether to iterate; otherwise dispatch `@tester` for RED, then `@coder` with explicit file scope, then the delivery gate.
 4. Delivery gate: `mise run ci` green, then `@reviewer` on the diff (contract, coverage, scope, commits), then report.
 
