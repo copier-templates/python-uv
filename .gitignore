@@ -161,7 +161,7 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# Local dev tooling (root-only; the template payload in templates/ stays tracked).
+# Local caches and editor directories (root-only; the template payload in templates/ stays tracked).
 # Bytecode, venvs, and caches are covered by the Python rules above; list here
 # only dot-directories with no dedicated rule so `git status` stays clean.
 .ruff_cache/
@@ -179,8 +179,6 @@ cython_debug/
 __MACOSX/
 .AppleDouble
 .LSOverride
-Icon[
-]
 
 # Thumbnails
 ._*
@@ -204,3 +202,17 @@ Temporary Items
 # Workflow-test profiles are JSON data; keep them tracked even when a
 # contributor-local global gitignore excludes *.json.
 !scripts/maintainer/workflows/*.json
+
+# The Copier payload is always source: keep every file under templates/ tracked
+# even when a contributor-global ignore excludes its extension (*.json, *.log,
+# .env, ...). Generated caches and OS junk below stay untracked.
+!templates/
+!templates/**
+templates/**/__pycache__/
+templates/**/*.py[cod]
+templates/**/.DS_Store
+templates/**/._*
+templates/**/.env
+templates/**/.venv/
+templates/**/.pytest_cache/
+templates/**/.ruff_cache/

@@ -44,6 +44,52 @@ def test_payload_bytecode_is_git_ignored():
     assert _git_check_ignore("templates/scripts/release_version.py") == 1, "source Payload files must stay tracked"
 
 
+def test_no_python_bytecode_is_tracked():
+    """No `__pycache__` directory or `.py[cod]` file may enter the index."""
+    tracked = subprocess.run(  # noqa: S603
+        [GIT, "ls-files", "-z"],
+        cwd=TEMPLATE_ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
+    paths = [path.decode() for path in tracked.split(b"\0") if path]
+    offenders = [path for path in paths if "__pycache__" in path or path.endswith((".pyc", ".pyo", ".pyd"))]
+    assert not offenders, f"Python bytecode is tracked: {offenders}"
+
+
+@pytest.mark.parametrize(
+    "rel_path",
+    [
+        "templates/example.json",
+        "templates/example.csv",
+        "templates/example.log",
+        "templates/example.pem",
+        "templates/example.key",
+    ],
+)
+def test_payload_extensions_override_global_ignores(rel_path: str):
+    """Payload files stay trackable even when a contributor-global ignore excludes their extension."""
+    assert _git_check_ignore(rel_path) == 1, f"Payload file would be ignored: {rel_path}"
+
+
+@pytest.mark.parametrize(
+    "rel_path",
+    [
+        "templates/scripts/__pycache__/x.pyc",
+        "templates/scripts/x.pyc",
+        "templates/.DS_Store",
+        "templates/scripts/._x",
+        "templates/.env",
+        "templates/.venv/x",
+        "templates/.pytest_cache/x",
+        "templates/.ruff_cache/x",
+    ],
+)
+def test_payload_generated_noise_stays_ignored(rel_path: str):
+    """Bytecode, secrets, caches and OS junk under the payload stay untracked."""
+    assert _git_check_ignore(rel_path) == 0, f"Generated file would be tracked: {rel_path}"
+
+
 def test_verbatim_payload_list_matches_template_tree():
     """The canonical verbatim-payload list must match the non-`.jinja` files under `templates/`."""
     standards_doc = (TEMPLATE_ROOT / "CODING_STANDARDS.md").read_text()
