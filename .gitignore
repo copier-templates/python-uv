@@ -14,7 +14,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+/lib/
 lib64/
 parts/
 sdist/
@@ -161,36 +161,18 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# All files starting with .
-.*
-# Exceptions: Include root-level dotfiles that are part of the template
-!.gitattributes
-!.gitignore
-!.prekignore
-!.agents/
-!.agents/*.md
-!prek.toml
-!.github/
-!.github/workflows/
-!.github/workflows/**
-# Exceptions: Include payload files under templates/ (Copier _subdirectory)
-!templates/
-!templates/**
-!templates/.editorconfig
-!templates/.gitattributes.jinja
-!templates/.gitignore.jinja
-!templates/.github/
-!templates/.github/workflows/
-!templates/.github/workflows/**
-!templates/prek.toml
-# But exclude everything else in .github
+# Local dev tooling (root-only; the template payload in templates/ stays tracked).
+# Bytecode, venvs, and caches are covered by the Python rules above; list here
+# only dot-directories with no dedicated rule so `git status` stays clean.
+.ruff_cache/
+.vscode/
+.opencode/
+.pyscn/
+
+# Only workflows are tracked under .github/; other helper content stays untracked.
 .github/**
 !.github/workflows/
 !.github/workflows/**
-*.txt
-*.xlsx
-*.log
-*.csv
 
 # General
 .DS_Store
@@ -219,10 +201,6 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
-# Template-dev tooling: keep the payload adapter and maintainer helpers tracked.
-# (The `lib/` rule above targets packaging build dirs, not this.)
-!scripts/lib/
-!scripts/maintainer/lib/
 # Workflow-test profiles are JSON data; keep them tracked even when a
 # contributor-local global gitignore excludes *.json.
 !scripts/maintainer/workflows/*.json

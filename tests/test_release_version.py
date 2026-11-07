@@ -208,6 +208,78 @@ def test_read_project_version_raises_on_missing_or_invalid(tmp_path: Path, conte
         release_version.read_project_version(pyproject)
 
 
+def test_update_project_version_replaces_the_project_version_line():
+    text = '[project]\nname = "demo"\nversion = "1.4.2"\n'
+    assert release_version.update_project_version(text, "2.0.0") == '[project]\nname = "demo"\nversion = "2.0.0"\n'
+
+
+def test_update_project_version_preserves_all_other_bytes():
+    """Only the `[project] version` line changes; comments, spacing and other tables stay byte-identical."""
+    text = (
+        "# leading comment\n"
+        "[project]\n"
+        'name = "demo"\n'
+        "dynamic = []\n"
+        'version = "1.4.2"\n'
+        "\n"
+        "[tool.other]\n"
+        'version = "9.9.9"\n'
+        'target-version = "py312"\n'
+    )
+    expected = (
+        "# leading comment\n"
+        "[project]\n"
+        'name = "demo"\n'
+        "dynamic = []\n"
+        'version = "2.0.0"\n'
+        "\n"
+        "[tool.other]\n"
+        'version = "9.9.9"\n'
+        'target-version = "py312"\n'
+    )
+    assert release_version.update_project_version(text, "2.0.0") == expected
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        '[project]\nname = "demo"\n',
+        '[tool.other]\nversion = "1.2.3"\n',
+    ],
+    ids=["missing-version", "version-only-outside-project"],
+)
+def test_update_project_version_raises_without_a_project_version(text: str):
+    with pytest.raises(ValueError):
+        release_version.update_project_version(text, "2.0.0")
+
+
+def test_update_project_version_raises_on_duplicate_project_versions():
+    text = '[project]\nname = "demo"\nversion = "1.4.2"\nversion = "1.4.3"\n'
+    with pytest.raises(ValueError):
+        release_version.update_project_version(text, "2.0.0")
+
+
+def test_set_project_version_rewrites_the_file(tmp_path: Path):
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_text('[project]\nname = "demo"\nversion = "1.4.2"\n', encoding="utf-8")
+    release_version.set_project_version(pyproject, "2.0.0")
+    assert pyproject.read_text(encoding="utf-8") == '[project]\nname = "demo"\nversion = "2.0.0"\n'
+
+
+def test_cli_set_version_is_idempotent(tmp_path: Path):
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_text('[project]\nname = "demo"\nversion = "1.4.2"\n', encoding="utf-8")
+
+    first = run_cli("set-version", "2.0.0", str(pyproject))
+    assert first.returncode == 0, first.stderr
+    rewritten = pyproject.read_text(encoding="utf-8")
+    assert rewritten == '[project]\nname = "demo"\nversion = "2.0.0"\n'
+
+    second = run_cli("set-version", "2.0.0", str(pyproject))
+    assert second.returncode == 0, second.stderr
+    assert pyproject.read_text(encoding="utf-8") == rewritten
+
+
 def test_cli_project_version_reads_explicit_path(tmp_path: Path):
     pyproject = tmp_path / "custom.toml"
     pyproject.write_text('[project]\nname = "demo"\nversion = "2.3.4"\n', encoding="utf-8")

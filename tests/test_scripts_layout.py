@@ -7,6 +7,7 @@ scripts never render into generated projects.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -59,6 +60,16 @@ def test_top_level_scripts_are_payload_adapters():
     )
 
 
+@pytest.mark.parametrize("rel", PAYLOAD_FILES)
+def test_payload_adapter_is_a_relative_symlink_into_templates(rel: str):
+    """Adapters must be relative symlinks so the checkout works from any path."""
+    link = TEMPLATE_ROOT / rel
+    assert link.is_symlink(), f"Payload adapter is not a symlink: {rel}"
+    target = os.readlink(link)
+    assert not os.path.isabs(target), f"{rel} uses an absolute symlink target: {target}"
+    assert link.resolve().is_relative_to(PAYLOAD.resolve()), f"{rel} must resolve into templates/"
+
+
 @pytest.mark.parametrize(("new_path", "old_path"), MAINTAINER_MOVES)
 def test_maintainer_tooling_lives_under_scripts_maintainer(new_path: str, old_path: str):
     """Maintainer-only tooling lives under `scripts/maintainer/`, not at the scripts root."""
@@ -109,3 +120,28 @@ def test_docs_describe_the_scripts_seam(rel: str):
     text = (TEMPLATE_ROOT / rel).read_text()
     assert "scripts/maintainer/" in text, f"{rel} must document scripts/maintainer/"
     assert "scripts/release/" not in text, f"{rel} still documents the old scripts/release/ path"
+
+
+def test_architecture_tree_nests_maintainer_under_scripts():
+    """The architecture tree must show `maintainer/` as a child of `scripts/`, not a sibling."""
+    lines = (TEMPLATE_ROOT / "docs" / "architecture.md").read_text().splitlines()
+    scripts_index = next(index for index, line in enumerate(lines) if "── scripts/" in line)
+    nested = lines[scripts_index + 1]
+    assert "maintainer/" in nested, f"expected maintainer/ directly under scripts/, got: {nested!r}"
+    assert nested.startswith("│"), "maintainer/ must be drawn as a child of scripts/ in the tree"
+
+
+def test_scripts_readme_names_the_real_layout_tests_and_maintainer_wording():
+    """README must point at the layout tests that actually assert the seam."""
+    readme = (SCRIPTS / "README.md").read_text()
+    assert "tests/test_scripts_layout.py" in readme
+    assert "tests/test_exclusions.py" not in readme
+    assert "Maintainer tooling" in readme
+
+
+def test_scripts_readme_documents_tag_collision_recovery():
+    """A release can abort on an existing tag; README must say how to recover without moving it."""
+    readme = (SCRIPTS / "README.md").read_text().lower()
+    assert "already exists" in readme
+    assert "never move a published tag" in readme
+    assert "delete the stale" in readme or "git tag -d" in readme

@@ -7,16 +7,28 @@ harness is a stdlib-only Python module (`scripts/maintainer/workflow_test.py`);
 
 Cutting a release is separate: `scripts/release.sh` (see `mise run release`
 and `docs/development.md`) bumps `pyproject.toml`, regenerates
-`CHANGELOG.md`, amends, and tags. Version math lives in the shipped
-`templates/scripts/release_version.py` module and shared logging in
-`templates/scripts/lib/release-common.sh`; both release scripts source those
-payload files, and the root `scripts/` entries are symlinks into `templates/`.
+`CHANGELOG.md`, amends, and tags. `templates/scripts/release_version.py` owns
+both reading (`project-version`) and writing (`set-version`) the `[project]`
+version plus all version math; shared logging lives in
+`templates/scripts/lib/release-common.sh`. The release gates invoke that
+module, and the root `scripts/` entries are symlinks into `templates/`.
 
-`scripts/maintainer/release/` holds the CI release automation (root-only,
+`scripts/maintainer/release/` holds the CI release automation (maintainer-only,
 never shipped to generated projects): `resolve-version.sh` maps a PR's
 `release:*` label to a bump kind, `cleanup-tag.sh` deletes orphan tags of
 unmerged PRs. Both are plain CLIs with `--help`; the release workflow wires
 them together.
+
+### Recovering from an existing tag
+
+`release.sh` refuses a version whose tag `already exists` locally or on
+origin, because it must never move a published tag. Releases are serialized
+(the release workflow's `concurrency: release` group): if the first PR merges
+while a second is still in flight, rerun the release for the second PR after
+the first merges — the fresh checkout sees the new tag and suggests a higher
+version. If only a stale local tag is in the way and it was never pushed,
+delete the stale local tag with `git tag -d X` and rerun; never retag or reuse
+the version.
 
 ```bash
 ./scripts/maintainer/test-workflow.sh prek
@@ -31,7 +43,7 @@ them together.
   `release_version.py` and `lib/release-common.sh` are relative symlinks into
   `templates/scripts/`, so the shipped Payload is the single source of truth.
   Only `README.md` and `maintainer/` sit beside them.
-- **Root-only tooling** under `scripts/maintainer/`: local workflow testing
+- **Maintainer tooling** under `scripts/maintainer/`: local workflow testing
   (`test-workflow.sh` adapter, `workflow_test.py` harness, `workflows/` JSON
   profiles and YAML snippets), CI release automation (`release/`) and
   `update_python_versions.py`. `lib/common.sh` holds the logging/die/need_cmd
@@ -53,6 +65,10 @@ Generated projects receive the Payload copies at `scripts/` and never see
 The script finds a working `docker` on its own (including the Homebrew one when
 a version-manager shim shadows it) and starts `colima` automatically if the
 daemon is down. Missing tools abort with an install hint.
+
+`workflow_test.py` targets the system `python3` (3.9+), so keep it
+Python 3.9-compatible: no `X | Y` unions, `match` statements or other newer
+syntax. `tests/test_workflow_harness.py` parses it with `feature_version=(3, 9)`.
 
 > Tested on macOS (Apple Silicon) with Docker via `colima`. Linux with a
 > native Docker daemon should work the same way; Windows is untested.
@@ -179,4 +195,5 @@ projects (see the Copier note below).
 
 The `scripts/maintainer/` tooling is template-developer tooling: it lives outside
 `templates/` (`_subdirectory: templates` in `copier.yaml`) and is covered by
-`tests/test_exclusions.py`, so it never lands in generated projects.
+`tests/test_scripts_layout.py` and `tests/test_release.py`, so it never lands in
+generated projects.

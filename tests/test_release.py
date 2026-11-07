@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
-from _projects import TEMPLATE_ROOT, ProjectRegistry, git, mise_toml
+from _projects import GIT, TEMPLATE_ROOT, ProjectRegistry, git, load_toml, mise_toml
 
 
 def _root_script() -> Path:
@@ -61,6 +62,15 @@ def test_release_script_delegates_version_math_to_module():
         assert inline not in content, f"release.sh still embeds {inline!r}"
 
 
+def test_release_script_delegates_pyproject_write_to_version_module():
+    """The version write is owned by `release_version.py set-version`, not an inline heredoc."""
+    content = _root_script().read_text()
+    assert "release_version.py" in content
+    assert "set-version" in content
+    assert "re.subn" not in content, "release.sh still rewrites pyproject.toml with an inline re.subn"
+    assert "expected exactly one top-level version key" not in content
+
+
 def test_suggested_version_supports_exact_version_override():
     """`--version` still releases an exact version regardless of bump math."""
     content = _root_script().read_text()
@@ -111,18 +121,73 @@ def test_print_version_works_on_dirty_tree(tmp_path: Path):
     assert proc.stdout.strip().splitlines()[-1] == "0.1.0"
 
 
-def test_release_rejects_version_with_bump(tmp_path: Path):
-    repo = _init_release_repo(tmp_path, "main")
-
-    proc = subprocess.run(  # noqa: S603
-        [str(_root_script()), "--version", "0.2.0", "--bump", "minor", "--print-version"],
+def _run_release(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(  # noqa: S603
+        [str(_root_script()), *args],
         cwd=repo,
         check=False,
         capture_output=True,
         text=True,
         stdin=subprocess.DEVNULL,
     )
+
+
+def test_print_explicit_version_rejects_existing_local_tag(tmp_path: Path):
+    """`--version X --print-version` must refuse a version that is already tagged."""
+    repo = _init_release_repo(tmp_path, "main")
+    _tag(repo, "0.2.0")
+    before = (repo / "pyproject.toml").read_text(encoding="utf-8")
+
+    proc = _run_release(repo, "--version", "0.2.0", "--print-version")
+
     assert proc.returncode == 1
+    assert "already exists" in proc.stderr
+    assert (repo / "pyproject.toml").read_text(encoding="utf-8") == before
+    assert not (repo / "CHANGELOG.md").exists()
+
+
+def test_print_explicit_version_rejects_version_below_floor(tmp_path: Path):
+    """`--version X --print-version` must enforce the pyproject/tag floor before printing."""
+    repo = _init_release_repo(tmp_path, "main")
+
+    proc = _run_release(repo, "--version", "0.0.9", "--print-version")
+
+    assert proc.returncode == 1
+    assert "must be above" in proc.stderr
+    assert "0.0.9" not in proc.stdout
+
+
+def test_print_explicit_version_accepts_valid_version_without_side_effects(tmp_path: Path):
+    """A valid explicit preview prints the version and leaves the tree untouched."""
+    repo = _init_release_repo(tmp_path, "main")
+    before = (repo / "pyproject.toml").read_text(encoding="utf-8")
+
+    proc = _run_release(repo, "--version", "0.2.0", "--print-version")
+
+    assert proc.returncode == 0, proc.stderr
+    assert proc.stdout.strip().splitlines()[-1] == "0.2.0"
+    assert (repo / "pyproject.toml").read_text(encoding="utf-8") == before
+    assert not (repo / "CHANGELOG.md").exists()
+
+
+@pytest.mark.parametrize("use_env", [False, True], ids=["flags", "env"])
+def test_release_rejects_version_with_bump(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, use_env: bool):
+    repo = _init_release_repo(tmp_path, "main")
+    monkeypatch.delenv("RELEASE_VERSION", raising=False)
+    monkeypatch.delenv("RELEASE_BUMP", raising=False)
+    if use_env:
+        proc = subprocess.run(  # noqa: S603
+            [str(_root_script()), "--print-version"],
+            cwd=repo,
+            check=False,
+            capture_output=True,
+            text=True,
+            stdin=subprocess.DEVNULL,
+            env={**os.environ, "RELEASE_VERSION": "0.2.0", "RELEASE_BUMP": "minor"},
+        )
+    else:
+        proc = _run_release(repo, "--version", "0.2.0", "--bump", "minor", "--print-version")
+    assert proc.returncode == 2
     assert "either --version or --bump" in proc.stderr
 
 
@@ -223,6 +288,46 @@ def _init_release_repo(path: Path, branch: str) -> Path:
     git(repo, "add", "-A")
     git(repo, "commit", "-qm", "init")
     return repo
+
+
+def test_release_cut_end_to_end(tmp_path: Path):
+    """A real `--version --yes` cut amends, tags, writes the changelog and never pushes."""
+    missing = [tool for tool in ("uv", "git-cliff") if shutil.which(tool) is None]
+    if missing:
+        pytest.skip(f"release cut needs {', '.join(missing)} on PATH")
+
+    origin = tmp_path / "origin.git"
+    subprocess.run([GIT, "init", "-q", "--bare", str(origin)], check=True)  # noqa: S603
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "pyproject.toml").write_text(
+        '[project]\nname = "demo"\nversion = "0.1.0"\nrequires-python = ">=3.12"\n',
+        encoding="utf-8",
+    )
+    git(repo, "init", "-q", "-b", "main")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "feat: initial")
+    git(repo, "remote", "add", "origin", str(origin))
+    git(repo, "push", "-q", "-u", "origin", "main")
+    base = git(repo, "rev-parse", "HEAD").stdout.strip()
+
+    proc = _run_release(repo, "--version", "0.2.0", "--yes")
+
+    assert proc.returncode == 0, proc.stderr
+    assert load_toml(repo / "pyproject.toml")["project"]["version"] == "0.2.0"
+    assert git(repo, "rev-list", "--count", "HEAD").stdout.strip() == "1", "release must amend, not add a commit"
+    subjects = git(repo, "log", "--format=%s").stdout.strip()
+    assert subjects == "feat: initial"
+    assert "chore(release)" not in subjects
+    assert git(repo, "tag", "--list", "0.2.0").stdout.strip() == "0.2.0"
+    changelog = repo / "CHANGELOG.md"
+    assert changelog.is_file() and changelog.stat().st_size > 0
+    assert (repo / "uv.lock").is_file()
+    assert git(repo, "ls-files", "--error-unmatch", "uv.lock").returncode == 0
+    assert git(repo, "status", "--porcelain").stdout == "", "release must leave a clean tree"
+    # Never push: the remote keeps its original commit and gains no tag.
+    assert git(origin, "rev-parse", "refs/heads/main").stdout.strip() == base
+    assert git(origin, "tag", "--list").stdout.strip() == ""
 
 
 def test_off_main_branch_aborts_without_yes(tmp_path: Path):

@@ -328,6 +328,12 @@ def _run_profile(name: str, profile: Profile, event: str, job: str, image: str, 
     if not workflow_path.is_file():
         _log_error(f"Workflow file not found: {workflow_path}")
         return 1
+    if profile.needs_git_shim and not job:
+        _log_error(
+            f"{name}: a job is required to inject its git shim; "
+            f"pass --job JOB (profile default: {profile.job or 'none'})."
+        )
+        return 1
 
     _log_info(f"testing {profile.workflow_file} (event={event} job={job or '(all)'})")
     run_actionlint(workflow_path)
@@ -394,7 +400,10 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("name", nargs="?", help="profile name under scripts/maintainer/workflows/")
     parser.add_argument("--event", help="override the profile trigger event")
-    parser.add_argument("--job", help="override the profile job (empty runs the whole event)")
+    parser.add_argument(
+        "--job",
+        help="override the profile job (empty runs the whole event; shim profiles require a job)",
+    )
     parser.add_argument("--image", help="override the ubuntu-latest container image")
     parser.add_argument("--amd64", action="store_true", help="force linux/amd64 emulation")
     parser.add_argument("--list", action="store_true", dest="list_profiles", help="list profiles and exit")

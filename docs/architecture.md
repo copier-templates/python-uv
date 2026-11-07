@@ -77,10 +77,11 @@ License partials under `templates/licenses/` are Jinja includes excluded from co
 │   ├── cliff.toml               # Changelog config (verbatim; root is a symlink)
 │   ├── taplo.toml               # TOML formatting (verbatim; root is a symlink)
 │   ├── .editorconfig            # Editor config (verbatim; root is a symlink)
-│   ├── scripts/release.sh       # Release script (verbatim; root is a symlink)
-│   ├── scripts/check-version-tag.sh  # Version-tag gate (verbatim; root is a symlink)
-│   ├── scripts/release_version.py    # Version math for both scripts (verbatim; root is a symlink)
-│   ├── scripts/lib/release-common.sh # Shared logging helper (verbatim; root is a symlink)
+│   ├── scripts                  # Release payload (verbatim; root entries are symlinks)
+│   │   ├── release.sh
+│   │   ├── check-version-tag.sh
+│   │   ├── release_version.py
+│   │   └── lib/release-common.sh
 │   ├── .gitattributes.jinja
 │   ├── .gitignore.jinja
 │   ├── pyproject.toml.jinja     # Project configuration (templated)
@@ -91,8 +92,13 @@ License partials under `templates/licenses/` are Jinja includes excluded from co
 │   └── {{ _copier_conf.answers_file }}.jinja  # Answers file
 │
 ├── tasks/lifecycle.py           # Post-copy Git lifecycle script (never ships)
-├── scripts/                     # Payload adapters: symlinks into templates/scripts/
-├── scripts/maintainer/          # Root-only maintainer tooling (never ships)
+├── scripts/                     # Payload adapters: relative symlinks into templates/scripts/
+│   ├── maintainer/              # Maintainer tooling: workflow harness, CI release automation (never ships)
+│   ├── release.sh               # -> ../templates/scripts/release.sh
+│   ├── check-version-tag.sh     # -> ../templates/scripts/check-version-tag.sh
+│   ├── release_version.py       # -> ../templates/scripts/release_version.py
+│   ├── lib/release-common.sh    # -> ../../templates/scripts/lib/release-common.sh
+│   └── README.md                # Workflow-testing and release-automation docs
 ├── examples/                    # Sample data files (never ships)
 │   └── config-basic.yml
 ├── tests/                       # Test suite (never ships; see Testing)
@@ -103,7 +109,7 @@ License partials under `templates/licenses/` are Jinja includes excluded from co
 
 Root files listed as symlinks in the [verbatim payload table](../CODING_STANDARDS.md#template-contract)
 are relative symlinks into `templates/`, so there is one source of truth. Root
-`.github/workflows/*.yml` are byte copies of the payload instead, because
+`.github/workflows/*.yml` are mirrors of the payload instead, because
 GitHub Actions does not reliably follow symlinked workflow files. Drift is
 guarded by `tests/test_sync.py`; see [ADR 0001](adr/0001-symlink-root-tooling-to-payload.md).
 
@@ -162,7 +168,7 @@ and asserting on the output. Key modules:
 
 | Test | Purpose |
 |------|---------|
-| `test_sync.py` | Root symlinks, workflow byte copies, tool pins and `TASK_CONTRACT` against a rendered `mise.toml` |
+| `test_sync.py` | Root symlinks, workflow mirrors, tool pins and `TASK_CONTRACT` against a rendered `mise.toml` |
 | `test_agent_sync.py` | `.agents/` roster and the verbatim payload list stay in sync with the tree |
 | `test_copier_settings.py` | Only real Copier settings appear as `_` keys in `copier.yaml` |
 | `test_render_variants.py` | Computed render facts and the answers-file omission contract |

@@ -78,7 +78,7 @@ jobs:
           VERSION="${{ steps.preview.outputs.version }}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          current="$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          current="$(python ./scripts/release_version.py project-version)"
           if [[ "$current" == "$VERSION" ]] && git rev-parse --verify --quiet "refs/tags/$VERSION" >/dev/null; then
             echo "Already released ($VERSION tagged); skipping."
             echo "released=true" >> "$GITHUB_OUTPUT"

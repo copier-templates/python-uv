@@ -7,6 +7,7 @@ behavior is pinned here: Docker and `act` are never invoked.
 
 from __future__ import annotations
 
+import ast
 import functools
 import importlib.util
 import json
@@ -265,6 +266,11 @@ def test_default_image_matches_the_canonical_registryless_image():
     assert "ghcr.io" not in HARNESS.read_text(encoding="utf-8")
 
 
+def test_harness_parses_as_python39():
+    """The harness must run on the README-promised system python3 (3.9)."""
+    ast.parse(HARNESS.read_text(encoding="utf-8"), feature_version=(3, 9))
+
+
 # --- inject_step: act-local snippet insertion --------------------------------
 
 
@@ -403,6 +409,25 @@ def test_cli_missing_profile_name_exits_one(tmp_path: Path):
 def test_cli_unknown_flag_keeps_argparse_exit_two(tmp_path: Path):
     proc = _run_harness("--bogus-flag", cwd=tmp_path)
     assert proc.returncode == 2
+
+
+def test_shim_profile_rejects_empty_job_override_with_clear_error(tmp_path: Path):
+    """`--job ""` cannot inject a shim: fail with a `--job` hint, not a raw lookup error."""
+    repo = _init_act_repo(tmp_path)
+    (repo / ".github" / "workflows" / "prek.yml").write_text(
+        "name: Prek\non: workflow_dispatch\njobs:\n  auto-update:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n",
+        encoding="utf-8",
+    )
+    bin_dir = _install_fake_tools(tmp_path)
+    env = _fake_act_env(tmp_path, bin_dir, log=ACT_SUCCESS_LOG)
+
+    proc = _run_harness("prek", "--job", "", cwd=repo, env=env)
+
+    assert proc.returncode == 1, proc.stderr
+    assert "required" in proc.stderr.lower()
+    assert "--job" in proc.stderr
+    assert "job '' not found" not in proc.stderr
+    assert not (tmp_path / "fake-act-args").exists(), "act must not run without a shim job"
 
 
 def test_shell_adapter_lists_profiles_from_an_unrelated_cwd(tmp_path: Path):

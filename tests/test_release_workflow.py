@@ -345,6 +345,14 @@ def test_release_job_calls_release_scripts():
     assert "mise run ci" in text
 
 
+def test_release_workflow_reads_current_version_through_release_module():
+    """The gate step reads `[project] version` via `release_version.py project-version`, not inline tomllib."""
+    text = _workflow_text()
+    assert "release_version.py" in text
+    assert "project-version" in text
+    assert "tomllib" not in text, "release.yml still inlines a tomllib read instead of the version module"
+
+
 def test_release_workflow_resolves_version_from_labels():
     text = _workflow_text()
     assert "milestone" not in text

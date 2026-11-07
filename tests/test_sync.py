@@ -1,7 +1,7 @@
 """Root-to-template sync guards.
 
 Root tooling files that also ship in the payload are symlinks into
-`templates/` (one source of truth). Workflows are byte copies because GitHub
+`templates/` (one source of truth). Workflows are mirrors because GitHub
 Actions does not reliably follow symlinked workflow files. Tool pins and the
 mise task-name contract are checked against a rendered project.
 """

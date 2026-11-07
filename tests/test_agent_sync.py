@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import re
+import subprocess
 
 import pytest
-from _projects import TEMPLATE_ROOT
+from _projects import GIT, TEMPLATE_ROOT
 
 AGENTS_DIR = TEMPLATE_ROOT / ".agents"
 AGENTS_DOC = TEMPLATE_ROOT / "AGENTS.md"
@@ -27,6 +28,22 @@ def test_agents_doc_mentions_no_undefined_agents():
     assert not undefined, f"AGENTS.md mentions agents with no definition in .agents/: {undefined}"
 
 
+def _git_check_ignore(rel_path: str) -> int:
+    """Exit code of `git check-ignore`: 0 ignored, 1 not ignored."""
+    return subprocess.run(  # noqa: S603
+        [GIT, "check-ignore", "--no-index", "-q", "--", rel_path],
+        cwd=TEMPLATE_ROOT,
+        check=False,
+    ).returncode
+
+
+def test_payload_bytecode_is_git_ignored():
+    """Payload bytecode must stay ignored while source Payload files stay tracked."""
+    bytecode = "templates/scripts/__pycache__/release_version.cpython-312.pyc"
+    assert _git_check_ignore(bytecode) == 0, f"{bytecode} would be committed despite the bytecode ignore rules"
+    assert _git_check_ignore("templates/scripts/release_version.py") == 1, "source Payload files must stay tracked"
+
+
 def test_verbatim_payload_list_matches_template_tree():
     """The canonical verbatim-payload list must match the non-`.jinja` files under `templates/`."""
     standards_doc = (TEMPLATE_ROOT / "CODING_STANDARDS.md").read_text()
@@ -44,6 +61,8 @@ def test_verbatim_payload_list_matches_template_tree():
         for p in (TEMPLATE_ROOT / "templates").rglob("*")
         if p.is_file()
         and not p.name.endswith(".jinja")
+        and "__pycache__" not in p.parts
+        and p.suffix != ".pyc"
         and "licenses" not in p.relative_to(TEMPLATE_ROOT / "templates").parts
     }
     missing = sorted(actual - listed)

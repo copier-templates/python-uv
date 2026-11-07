@@ -1,8 +1,8 @@
 """Version math shared by `release.sh` and `check-version-tag.sh`.
 
 Single source of version knowledge: parsing, bumping, suggestion, drift
-classification and tag selection. Stdlib-only so generated projects can run
-it with their own interpreter.
+classification, tag selection, and reading/writing the `[project]` version.
+Stdlib-only so generated projects can run it with their own interpreter.
 """
 
 from __future__ import annotations
@@ -16,6 +16,8 @@ from pathlib import Path
 
 SEMVER = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
 BUMP_KINDS = ("patch", "minor", "major")
+_SECTION = re.compile(r"^\s*\[([^\[\]]+)\]\s*(?:#.*)?$")
+_PROJECT_VERSION = re.compile(r'^(\s*version\s*=\s*)"[^"]*"(.*)$')
 
 
 def _format(version: tuple[int, int, int]) -> str:
@@ -121,6 +123,45 @@ def read_project_version(path: str | Path = "pyproject.toml") -> str:
     return version
 
 
+def update_project_version(text: str, version: str) -> str:
+    """Rewrite the single `[project] version = "..."` entry in `text`.
+
+    Every other byte (comments, spacing, other tables) is preserved. Raises
+    ``ValueError`` when the project version is missing or duplicated.
+    """
+    parse_version(version)
+    lines = text.splitlines(keepends=True)
+    matches: list[tuple[int, re.Match[str], str]] = []
+    in_project = False
+    for index, line in enumerate(lines):
+        section = _SECTION.match(line)
+        if section is not None:
+            in_project = section.group(1).strip() == "project"
+            continue
+        ending = line[len(line.rstrip("\r\n")) :]
+        match = _PROJECT_VERSION.match(line[: len(line) - len(ending)])
+        if in_project and match is not None:
+            matches.append((index, match, ending))
+    if not matches:
+        raise ValueError('missing [project] version = "X.Y.Z" entry')
+    if len(matches) > 1:
+        raise ValueError('found duplicate [project] version = "X.Y.Z" entries')
+    index, match, ending = matches[0]
+    prefix, suffix = match.groups()
+    lines[index] = f'{prefix}"{version}"{suffix}{ending}'
+    return "".join(lines)
+
+
+def set_project_version(path: str | Path, version: str) -> None:
+    """Rewrite `[project] version` in `path`, preserving every other byte."""
+    project_path = Path(path)
+    with project_path.open(encoding="utf-8", newline="") as handle:
+        text = handle.read()
+    updated = update_project_version(text, version)
+    with project_path.open("w", encoding="utf-8", newline="") as handle:
+        handle.write(updated)
+
+
 def _build_parser() -> argparse.ArgumentParser:
     """Build the CLI parser used by the release scripts."""
     parser = argparse.ArgumentParser(
@@ -131,6 +172,10 @@ def _build_parser() -> argparse.ArgumentParser:
 
     project_version = subparsers.add_parser("project-version", help="print [project] version")
     project_version.add_argument("path", nargs="?", default="pyproject.toml", help="pyproject path")
+
+    set_version = subparsers.add_parser("set-version", help="rewrite [project] version in place")
+    set_version.add_argument("version", help="new plain X.Y.Z version")
+    set_version.add_argument("path", nargs="?", default="pyproject.toml", help="pyproject path")
 
     subparsers.add_parser("latest-tag", help="highest plain X.Y.Z line on stdin")
     subparsers.add_parser("latest-remote-tag", help="highest plain X.Y.Z refs/tags entry on stdin")
@@ -160,6 +205,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         if args.command == "project-version":
             print(read_project_version(args.path))
+        elif args.command == "set-version":
+            set_project_version(args.path, args.version)
         elif args.command == "latest-tag":
             print(latest_tag(sys.stdin.read().splitlines()))
         elif args.command == "latest-remote-tag":
