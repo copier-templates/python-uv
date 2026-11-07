@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import stat
 import subprocess
 from pathlib import Path
@@ -133,13 +134,19 @@ def test_resolve_skips_when_pr_has_no_release_label(resolve_env: dict[str, str])
 def test_resolve_fails_on_multiple_release_labels(resolve_env: dict[str, str]):
     proc = _resolve(resolve_env, *SHA_ARGS, prs=_prs(_pr(7, "release:patch", "release:minor")))
     assert proc.returncode == 1
-    assert "exactly one" in proc.stderr
+    assert proc.stderr == (
+        "release-resolve-version: PR #7 carries several release labels (minor patch); "
+        "keep exactly one of release:patch, release:minor, release:major.\n"
+    )
 
 
 def test_resolve_fails_on_unknown_release_label(resolve_env: dict[str, str]):
     proc = _resolve(resolve_env, *SHA_ARGS, prs=_prs(_pr(7, "release:hotfix")))
     assert proc.returncode == 1
-    assert "unknown release label" in proc.stderr
+    assert proc.stderr == (
+        "release-resolve-version: PR #7 carries unknown release label 'release:hotfix'; "
+        "use release:patch, release:minor or release:major.\n"
+    )
 
 
 @pytest.mark.parametrize(
@@ -229,9 +236,10 @@ def _origin_has_tag(work: Path, tag: str) -> bool:
 
 def test_cleanup_skips_without_pointing_tags(stub_env: dict[str, str], tmp_path: Path):
     work = _init_origin_with_tag(tmp_path, tag_on_main=False)
-    proc = _cleanup(stub_env, work, _head_sha(work, "main"))
+    sha = _head_sha(work, "main")
+    proc = _cleanup(stub_env, work, sha)
     assert proc.returncode == 0, proc.stderr
-    assert "nothing to clean" in proc.stdout
+    assert proc.stdout == f"No tags point at {sha}; nothing to clean.\n"
     assert _origin_has_tag(work, "0.3.0")
 
 
@@ -239,7 +247,7 @@ def test_cleanup_deletes_orphan_tag(stub_env: dict[str, str], tmp_path: Path):
     work = _init_origin_with_tag(tmp_path, tag_on_main=False)
     proc = _cleanup(stub_env, work, _head_sha(work, "feat"))
     assert proc.returncode == 0, proc.stderr
-    assert "orphan tag 0.3.0" in proc.stdout
+    assert proc.stdout == "Deleting orphan tag 0.3.0.\n"
     assert not _origin_has_tag(work, "0.3.0")
 
 
@@ -247,8 +255,39 @@ def test_cleanup_keeps_mainline_tag(stub_env: dict[str, str], tmp_path: Path):
     work = _init_origin_with_tag(tmp_path, tag_on_main=True)
     proc = _cleanup(stub_env, work, _head_sha(work, "main"))
     assert proc.returncode == 0, proc.stderr
-    assert "on mainline; keeping" in proc.stdout
+    assert proc.stdout == "Tag 0.3.0 is on mainline; keeping.\n"
     assert _origin_has_tag(work, "0.3.0")
+
+
+@pytest.mark.parametrize(
+    ("script", "args", "prefix", "tool"),
+    [
+        (RESOLVE_SCRIPT, ("--repo", "o/r", "--sha", "abc123"), "release-resolve-version", "gh"),
+        (CLEANUP_SCRIPT, ("--sha", "abc123"), "cleanup-tag", "git"),
+    ],
+    ids=["resolve-version", "cleanup-tag"],
+)
+def test_missing_tool_diagnostics_use_script_name(
+    script: Path, args: tuple[str, ...], prefix: str, tool: str, tmp_path: Path
+):
+    """Each CLI wires SCRIPT_NAME so need_cmd exits 1 with its bare script prefix."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    for name in ("bash", "dirname"):
+        tool_path = shutil.which(name)
+        assert tool_path is not None, f"{name} must be on PATH"
+        (bin_dir / name).symlink_to(tool_path)
+    proc = subprocess.run(  # noqa: S603
+        [str(script), *args],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env={"PATH": str(bin_dir)},
+    )
+    assert proc.returncode == 1
+    assert proc.stdout == ""
+    assert proc.stderr == f"{prefix}: Required tool '{tool}' not found.\n"
 
 
 def _workflow_text() -> str:

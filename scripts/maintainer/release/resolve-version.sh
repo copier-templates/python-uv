@@ -11,6 +11,12 @@
 # exits 1 when the PR carries several release labels. Reads $GH_TOKEN via gh.
 set -euo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# Prefix exit-1 diagnostics with this script's name (pre-refactor stderr).
+SCRIPT_NAME="release-resolve-version"
+# shellcheck source=scripts/maintainer/lib/common.sh
+source "$SCRIPT_DIR/../lib/common.sh"
+
 SHA=""
 PR=""
 REPO=""
@@ -29,19 +35,10 @@ Issue metadata and version numbers are never read: the label alone decides.
 EOF
 }
 
-die() {
-  printf 'release-resolve-version: %s\n' "$*" >&2
-  exit 1
-}
-
 usage_error() { # <message>
   usage >&2
   printf 'release-resolve-version: %s\n' "$1" >&2
   exit 2
-}
-
-need_cmd() { # <cmd>
-  command -v "$1" >/dev/null 2>&1 || die "Required tool '$1' not found."
 }
 
 while [[ $# -gt 0 ]]; do

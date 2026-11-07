@@ -10,6 +10,12 @@
 # Exits 0 on skips; 1 on usage errors or when a delete fails.
 set -euo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# Prefix exit-1 diagnostics with this script's name (pre-refactor stderr).
+SCRIPT_NAME="cleanup-tag"
+# shellcheck source=scripts/maintainer/lib/common.sh
+source "$SCRIPT_DIR/../lib/common.sh"
+
 SHA=""
 REMOTE="origin"
 
@@ -24,19 +30,10 @@ never merged to the mainline. Prints what it keeps and deletes.
 EOF
 }
 
-die() {
-  printf 'cleanup-tag: %s\n' "$*" >&2
-  exit 1
-}
-
 usage_error() { # <message>
   usage >&2
   printf 'cleanup-tag: %s\n' "$1" >&2
   exit 2
-}
-
-need_cmd() { # <cmd>
-  command -v "$1" >/dev/null 2>&1 || die "Required tool '$1' not found."
 }
 
 while [[ $# -gt 0 ]]; do

@@ -1,9 +1,16 @@
 #!/usr/bin/env bash
-# Shared helpers for local GitHub Actions workflow testing.
-# Sourced by scripts/maintainer/test-workflow.sh and per-workflow configs. Not executed directly.
+# Shared helpers for local workflow testing and the maintainer release CLIs.
+# Sourced by scripts/maintainer/test-workflow.sh, per-workflow configs, and the
+# maintainer release CLIs. Not executed directly.
+#
+# Callers may set SCRIPT_NAME before calling die/need_cmd: when it is non-empty,
+# die prints "SCRIPT_NAME: message" (the release CLIs rely on this to keep their
+# pre-refactor stderr); when empty, die keeps the "✗ message" default used by
+# test-workflow.sh.
 set -euo pipefail
 
 SCRIPTS_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_NAME="${SCRIPT_NAME:-}"
 
 # --- logging (colors only when attached to a TTY) ---
 if [[ -t 1 ]]; then
@@ -25,12 +32,23 @@ log_ok() { printf '%s✓ %s%s\n' "$_C_OK" "$*" "$_C_OFF"; }
 log_warn() { printf '%s! %s%s\n' "$_C_WARN" "$*" "$_C_OFF" >&2; }
 log_error() { printf '%s✗ %s%s\n' "$_C_ERR" "$*" "$_C_OFF" >&2; }
 die() {
+  if [[ -n $SCRIPT_NAME ]]; then
+    printf '%s: %s\n' "$SCRIPT_NAME" "$*" >&2
+    exit 1
+  fi
   log_error "$*"
   exit 1
 }
 
 need_cmd() { # <cmd> [install-hint]
-  command -v "$1" >/dev/null 2>&1 || die "Required tool '$1' not found. ${2:-}"
+  if ! command -v "$1" >/dev/null 2>&1; then
+    local hint="${2:-}"
+    if [[ -n $hint ]]; then
+      die "Required tool '$1' not found. $hint"
+    else
+      die "Required tool '$1' not found."
+    fi
+  fi
 }
 
 repo_root() {

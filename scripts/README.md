@@ -30,8 +30,10 @@ them together.
   `templates/scripts/`, so the shipped Payload is the single source of truth.
   Only `README.md` and `maintainer/` sit beside them.
 - **Root-only tooling** under `scripts/maintainer/`: local workflow testing
-  (`test-workflow.sh`, `workflows/`, `lib/`), CI release automation (`release/`)
-  and `update_python_versions.py`. None of it renders into generated projects.
+  (`test-workflow.sh`, `workflows/`), CI release automation (`release/`) and
+  `update_python_versions.py`. `lib/` holds helpers shared across that tooling
+  (`common.sh` logging/die preamble, `inject_step.py`). None of it renders into
+  generated projects.
 
 Generated projects receive the Payload copies at `scripts/` and never see
 `scripts/maintainer/`.
