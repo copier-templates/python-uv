@@ -1,0 +1,10 @@
+# Taplo configuration: one array item per line, always.
+#
+# Taplo has no force-expand switch (`array_auto_collapse = false` does not
+# stick and trailing commas do not protect). `column_width = 1` makes every
+# non-empty array exceed the width, so `taplo format` deterministically
+# expands all arrays instead of collapsing the ones that fit. Verified
+# against taplo 0.10.0: empty arrays stay `[\n]`, comments and key order
+# are preserved.
+[formatting]
+column_width = 1
