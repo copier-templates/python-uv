@@ -1,0 +1,1 @@
+../templates/scripts/check_version_tag.py

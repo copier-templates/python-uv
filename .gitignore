@@ -167,8 +167,8 @@ cython_debug/
 !.gitattributes
 !.gitignore
 !.prekignore
-!.opencode/
-!.opencode/agents/*.md
+!.agents/
+!.agents/*.md
 !prek.toml
 !.github/
 !.github/workflows/
