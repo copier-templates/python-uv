@@ -1,0 +1,49 @@
+root = true
+
+# Global defaults for all files
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Shell Scripting (Bash/Sh)
+[*.{sh,bash}]
+indent_style = space
+indent_size = 2
+
+# JavaScript / TypeScript / React (JSX/TSX) / JSON
+[*.{js,jsx,ts,tsx,json,json5}]
+indent_style = space
+indent_size = 2
+
+# HTML / CSS / Sass / Less
+[*.{html,css,scss,less}]
+indent_style = space
+indent_size = 2
+
+# YAML
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# Python (PEP 8 / custom length)
+[*.py]
+indent_style = space
+indent_size = 4
+max_line_length = 120
+
+# Golang
+[*.go]
+indent_style = tab
+indent_size = tab
+tab_width = 4
+
+# Makefiles (Strictly require tabs)
+[Makefile]
+indent_style = tab
+indent_size = tab
+
+# Documentation
+[*.md]
+trim_trailing_whitespace = false

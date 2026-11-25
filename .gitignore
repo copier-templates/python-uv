@@ -190,6 +190,7 @@ cython_debug/
 *.txt
 *.xlsx
 *.log
+!.github/jactionlint.yaml
 *.csv
 
 # General

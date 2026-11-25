@@ -1,0 +1,7 @@
+# The shipped workflows use readable release tags (e.g. actions/checkout@v6).
+# Keep the unpinned-uses rule but accept tags as refs; use hash pins when a
+# workflow needs a supply-chain boundary.
+rules:
+  unpinned-uses:
+    policies:
+      "*": "ref-pin"

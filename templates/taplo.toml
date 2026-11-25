@@ -1,0 +1,18 @@
+# Taplo configuration: one array item per line, always.
+#
+# Taplo has no force-expand switch (`array_auto_collapse = false` does not
+# stick and trailing commas do not protect). `column_width = 1` makes every
+# non-empty array exceed the width, so `taplo format` deterministically
+# expands all arrays instead of collapsing the ones that fit. Verified
+# against taplo 0.10.0: empty arrays stay `[\n]`, comments and key order
+# are preserved.
+#
+# mise fmt owns mise configuration (its ordering/TOML 1.1 rules differ from
+# taplo), and mise tasks validate their own task files, so taplo skips both.
+exclude = [
+  "mise.toml",
+  "mise.*.toml",
+  "tasks/**/*.tasks.toml",
+]
+[formatting]
+column_width = 1
