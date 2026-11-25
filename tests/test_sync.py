@@ -26,8 +26,8 @@ MIN_MISE_VERSION = (2026, 11, 10)
 
 @pytest.mark.parametrize("source", ["root", "rendered"])
 def test_mise_imports_shared_task_categories(source: str, projects: ProjectRegistry):
-    """Root and rendered mise.toml import the shared core/toml/py/cicd/release tasks under experimental includes."""
-    data = load_toml(TEMPLATE_ROOT / "mise.toml") if source == "root" else projects.render("lib-licensed").mise()
+    """Root and rendered mise.toml import the shared core/toml/py/cicd tasks under experimental includes."""
+    data = load_toml(TEMPLATE_ROOT / "mise.toml") if source == "root" else projects.render("basic").mise()
     includes = data.get("task_config", {}).get("includes", [])
     assert set(SHARED_INCLUDES) <= set(includes)
     shared_refs = {include.split("?ref=", 1)[1] for include in includes if SHARED_REPO_URL in include}
@@ -40,7 +40,7 @@ def test_mise_imports_shared_task_categories(source: str, projects: ProjectRegis
 @pytest.mark.parametrize("source", ["root", "rendered"])
 def test_shared_include_refs_match_prek_rev(source: str, projects: ProjectRegistry):
     """Every shared task-include ref equals the shared prek repo rev, so tasks and hooks pin one release."""
-    data = load_toml(TEMPLATE_ROOT / "mise.toml") if source == "root" else projects.render("lib-licensed").mise()
+    data = load_toml(TEMPLATE_ROOT / "mise.toml") if source == "root" else projects.render("basic").mise()
     includes = data.get("task_config", {}).get("includes", [])
     shared_includes = [include for include in includes if SHARED_PREK_REPO in include]
     assert shared_includes, "shared task includes must be present"

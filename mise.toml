@@ -10,7 +10,7 @@ includes = [
   "git::https://github.com/copier-templates/shared-dev-tooling.git//tasks/core?ref=0.2.1",
   "git::https://github.com/copier-templates/shared-dev-tooling.git//tasks/toml?ref=0.2.1",
   "git::https://github.com/copier-templates/shared-dev-tooling.git//tasks/py?ref=0.2.1",
-  "git::https://github.com/copier-templates/shared-dev-tooling.git//tasks/cicd?ref=0.2.1"
+  "git::https://github.com/copier-templates/shared-dev-tooling.git//tasks/cicd/github?ref=0.2.1",
 ]
 
 [tools]

@@ -256,3 +256,38 @@ def test_include_tags_glob_patterns_are_preserved(tmp_path: Path):
     assert f'include_tags = [\n  "v*",\n  "{NEW}",\n]' in content
     assert f'repo = "{SHARED_REPO}"\nrev = "{NEW}"' in content
     assert _run(tmp_path, "--check").returncode == 0
+
+
+def test_update_table_with_multiple_exact_pins_collapses_to_one(tmp_path: Path):
+    """Multiple exact tags (multiple ref versions) collapse to the mise ref instead of duplicating."""
+    _write_template_tree(tmp_path)
+    prek = tmp_path / "templates" / "prek.toml"
+    prek.write_text(
+        PREK_TOML.replace(f'  "{OLD}",\n', f'  "{NEW}",\n  "{OLD}",\n').replace(
+            f'repo = "{SHARED_REPO}"\nrev = "{OLD}"', f'repo = "{SHARED_REPO}"\nrev = "{NEW}"'
+        )
+    )
+    assert _run(tmp_path, "--check").returncode == 1
+    assert _run(tmp_path).returncode == 0
+    content = prek.read_text()
+    assert f'include_tags = [\n  "{OLD}",\n]' in content
+    assert f'repo = "{SHARED_REPO}"\nrev = "{OLD}"' in content
+    assert f'repo = "https://example.com/unrelated-hooks"\nrev = "{OLD}"' in content
+    assert _run(tmp_path, "--check").returncode == 0
+
+
+def test_update_table_single_line_multiple_pins_collapses_to_one(tmp_path: Path):
+    """A single-line `include_tags` with several exact pins collapses to one pin."""
+    _write_template_tree(tmp_path)
+    prek = tmp_path / "templates" / "prek.toml"
+    prek.write_text(
+        PREK_TOML.replace(f'include_tags = [\n  "{OLD}",\n]', f'include_tags = ["{NEW}", "{OLD}"]').replace(
+            f'repo = "{SHARED_REPO}"\nrev = "{OLD}"', f'repo = "{SHARED_REPO}"\nrev = "{NEW}"'
+        )
+    )
+    assert _run(tmp_path, "--check").returncode == 1
+    assert _run(tmp_path).returncode == 0
+    content = prek.read_text()
+    assert f'include_tags = ["{OLD}"]' in content
+    assert f'repo = "{SHARED_REPO}"\nrev = "{OLD}"' in content
+    assert _run(tmp_path, "--check").returncode == 0

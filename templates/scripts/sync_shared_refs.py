@@ -7,7 +7,9 @@ task categories, its tag scheme) is hard-coded, so new categories and new tag
 schemes are picked up with no script changes. The matching prek pins are found
 by canonical URL (`git::` prefix and `.git` suffix ignored): the `rev` of the
 corresponding `[[repos]]` block and the exact pins of its `[update.repos]`
-table (glob patterns such as `v*` are left alone). The template tests pin the
+table (glob patterns such as `v*` are left alone); when a table lists several
+exact tags (multiple ref versions) they collapse to the single target tag.
+The template tests pin the
 same tag in `tests/_projects.py`; moving all of them at once keeps a bump to
 one command instead of a manual edit per file.
 
@@ -124,6 +126,40 @@ def _has_glob(token: str) -> bool:
     return any(char in _GLOB_CHARS for char in token)
 
 
+def _split_toml_comment(line: str) -> tuple[str, str]:
+    """Split a line into (code, comment) at the first `#` outside double quotes."""
+    in_string = False
+    for index, char in enumerate(line):
+        if char == '"':
+            in_string = not in_string
+        elif char == "#" and not in_string:
+            return line[:index], line[index:]
+    return line, ""
+
+
+def _collapse_duplicate_pin(line: str, target: str, kept: bool) -> tuple[str | None, bool]:
+    """Keep only a managed table's first exact `"<target>"` pin, dropping later duplicates.
+
+    A managed `[update.repos]` table may list several exact tags (multiple ref
+    versions); once moved to one `target`, every pin but the first is redundant.
+    Bare pins drop the whole line, inline pins lose the extra token with one
+    neighboring comma. Comment-only lines are never touched.
+    """
+    token = f'"{target}"'
+    code, suffix = _split_toml_comment(line)
+    if token not in code or code.strip().startswith("#"):
+        return line, kept
+    if code.strip() in (f"{token},", token):
+        return (None, kept) if kept else (line, True)
+    if kept:
+        collapsed = re.sub(rf",\s*{re.escape(token)}", "", code)
+        collapsed = re.sub(rf"{re.escape(token)}\s*,", "", collapsed)
+        return collapsed + suffix, kept
+    head, sep, tail = code.partition(token)
+    tail = re.sub(rf",\s*{re.escape(token)}", "", tail)
+    return head + sep + tail + suffix, True
+
+
 def _rewrite_pinned_tokens(line: str, target: str) -> str:
     """Move exact pins on an `[update.repos]` table line to `target`, keeping glob patterns."""
 
@@ -148,26 +184,32 @@ def _rewrite_prek(text: str, targets: dict[str, str]) -> str:
 
     Blocks and tables are matched to mise sources by canonical URL, so
     unrelated repos pinned at the same tag are never touched. The table header
-    itself is never rewritten, and glob patterns (e.g. `v*`) are preserved.
+    itself is never rewritten, glob patterns (e.g. `v*`) are preserved, and
+    duplicate exact pins in one table collapse to the table's first pin, so
+    multiple ref versions normalize to one tag.
     """
     lines = text.splitlines(keepends=True)
     out: list[str] = []
     repo_target: str | None = None
     table_target: str | None = None
+    table_kept_pin = False
     for line in lines:
         stripped = line.strip()
         rewritten = line
         if stripped.startswith("[[repos]]"):
             repo_target = None
             table_target = None
+            table_kept_pin = False
         elif (key := _update_repos_key(stripped)) is not None:
             repo_target = None
             table_target = targets.get(_canonical_source(key))
+            table_kept_pin = False
             out.append(rewritten)
             continue
         elif stripped.startswith("["):
             repo_target = None
             table_target = None
+            table_kept_pin = False
         elif (repo := _repo_value(stripped)) is not None:
             table_target = None
             repo_target = targets.get(_canonical_source(repo))
@@ -175,6 +217,10 @@ def _rewrite_prek(text: str, targets: dict[str, str]) -> str:
             rewritten = _rewrite_repo_rev(rewritten, repo_target)
         elif table_target is not None:
             rewritten = _rewrite_pinned_tokens(rewritten, table_target)
+            collapsed, table_kept_pin = _collapse_duplicate_pin(rewritten, table_target, table_kept_pin)
+            if collapsed is None:
+                continue
+            rewritten = collapsed
         out.append(rewritten)
     return "".join(out)
 

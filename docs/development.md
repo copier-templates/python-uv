@@ -98,7 +98,8 @@ git commit -m "WIP: template changes"
 - **prek**: Git hooks framework
 - **git-cliff**: Changelog generator (`mise run changelog` previews, `cliff.toml` configures)
 - **shared-dev-tooling**: both `mise.toml` files import `tasks/core`, `tasks/toml`,
-  `tasks/py`, `tasks/cicd` and `tasks/release` over the network from
+  `tasks/py` and (when GitHub integration is enabled) `tasks/cicd/github` over
+  the network from
   [`copier-templates/shared-dev-tooling`](https://github.com/copier-templates/shared-dev-tooling),
   and `prek.toml` pins the same tag as the shared hooks `rev` (plus a matching
   `[update.repos]` `include_tags` so `prek update` never moves it alone).

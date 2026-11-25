@@ -70,11 +70,10 @@ The root and every rendered `mise.toml` import task files over the network from
 git::https://github.com/copier-templates/shared-dev-tooling.git//tasks/core?ref=0.2.1
 git::https://github.com/copier-templates/shared-dev-tooling.git//tasks/toml?ref=0.2.1
 git::https://github.com/copier-templates/shared-dev-tooling.git//tasks/py?ref=0.2.1
-git::https://github.com/copier-templates/shared-dev-tooling.git//tasks/cicd?ref=0.2.1
-git::https://github.com/copier-templates/shared-dev-tooling.git//tasks/release?ref=0.2.1
+git::https://github.com/copier-templates/shared-dev-tooling.git//tasks/cicd/github?ref=0.2.1
 ```
 
-All five `?ref=` values must equal the `rev` (and the `[update.repos]`
+All four `?ref=` values must equal the `rev` (and the `[update.repos]`
 `include_tags`) of the shared repo in `prek.toml`: one tag supplies the shared
 hook environments and the shared task definitions, and `tests/test_sync.py`
 fails when the pair drifts. `prek.toml` pins the repo through

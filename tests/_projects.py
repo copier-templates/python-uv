@@ -19,7 +19,7 @@ TEMPLATE_ROOT = Path(__file__).resolve().parents[1]
 
 # Single source of truth for the mise/shared-tooling contract (see tests/test_sync.py).
 SHARED_REF = "0.2.1"
-SHARED_CATEGORIES = ("core", "toml", "py", "cicd", "release")
+SHARED_CATEGORIES = ("core", "toml", "py", "cicd/github")
 LOCAL_TASKS = frozenset({"bootstrap", "release"})
 
 GIT = shutil.which("git") or "git"
