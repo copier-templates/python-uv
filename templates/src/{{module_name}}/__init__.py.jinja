@@ -1,0 +1,17 @@
+"""{{project_description}}."""
+
+__version__ = "0.1.0"
+__user__ = "{{user_name}}"
+
+{% if is_lib %}
+def hello() -> str:
+    """Return a greeting from the generated library."""
+    return "Hello from {{project_name}}!"
+{% else %}
+def main() -> None:
+    """Execute the main application logic."""
+    print("Hello from {{project_name}}!")
+    print("{{project_description}}")
+{% endif %}
+
+__all__ = ["{% if is_lib %}hello{% else %}main{% endif %}"]
