@@ -1,0 +1,38 @@
+# mise 2026.11.10 is the floor for the shared `task_config.includes` below:
+# remote includes are still experimental, so `[settings] experimental = true`
+# is required. Older mise releases reject the include list.
+min_version = "2026.11.10"
+
+[settings]
+experimental = true
+jobs = 1
+lockfile = true
+minimum_release_age = "7d"
+
+[task_config]
+includes = [
+  "git::https://github.com/copier-templates/shared-dev-tooling.git//tasks/core?ref=0.2.1",
+  "git::https://github.com/copier-templates/shared-dev-tooling.git//tasks/toml?ref=0.2.1",
+  "git::https://github.com/copier-templates/shared-dev-tooling.git//tasks/py?ref=0.2.1",
+  "git::https://github.com/copier-templates/shared-dev-tooling.git//tasks/cicd?ref=0.2.1"
+]
+
+[tools]
+git-cliff = "2.14"
+gum = "2.0"
+jactionlint = "2.6"
+prek = "0.5"
+taplo = "0.10"
+uv = "0.13"
+
+[env]
+_.python.venv = { path = ".venv", create = true }
+_.file = ".env"
+
+[tasks.bootstrap]
+description = "First-run setup for humans and agents (trust + setup + doctor)"
+run = ["mise trust", { task = "setup" }, { task = "mise:doctor" }]
+
+[tasks.release]
+description = "Cut a release: bump version, changelog, amend, tag (no push)"
+run = "uv run python scripts/release.py"
