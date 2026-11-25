@@ -37,6 +37,23 @@ def test_mise_imports_shared_task_categories(source: str, projects: ProjectRegis
     assert tuple(int(part) for part in min_version.split(".")) >= MIN_MISE_VERSION
 
 
+@pytest.mark.parametrize("source", ["root", "rendered"])
+def test_shared_include_refs_match_prek_rev(source: str, projects: ProjectRegistry):
+    """Every shared task-include ref equals the shared prek repo rev, so tasks and hooks pin one release."""
+    data = load_toml(TEMPLATE_ROOT / "mise.toml") if source == "root" else projects.render("lib-licensed").mise()
+    includes = data.get("task_config", {}).get("includes", [])
+    shared_includes = [include for include in includes if SHARED_PREK_REPO in include]
+    assert shared_includes, "shared task includes must be present"
+    assert all("?ref=" in include for include in shared_includes), (
+        f"every shared task include must pin a ref: {shared_includes}"
+    )
+    refs = {include.split("?ref=", 1)[1] for include in shared_includes}
+    prek = load_toml(TEMPLATE_ROOT / "templates" / "prek.toml")
+    shared_repos = [repo for repo in prek["repos"] if repo["repo"] == SHARED_PREK_REPO]
+    assert shared_repos, "prek.toml must pin the shared hooks repo"
+    assert refs == {shared_repos[0]["rev"]}
+
+
 @pytest.mark.parametrize("rel_path", SYMLINKED_ROOT_PATHS)
 def test_root_file_is_symlink_into_templates(rel_path: str):
     root = TEMPLATE_ROOT / rel_path

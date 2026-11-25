@@ -1,0 +1,1 @@
+../templates/scripts/sync_shared_refs.py
