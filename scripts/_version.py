@@ -1,0 +1,1 @@
+../templates/scripts/_version.py
