@@ -5,7 +5,7 @@ from __future__ import annotations
 import difflib
 
 import pytest
-from _projects import LOCAL_TASKS, SHARED_CATEGORIES, SHARED_REF, TEMPLATE_ROOT, ProjectRegistry, load_toml
+from _projects import LOCAL_TASKS, SHARED_REF, SHARED_REFS, TEMPLATE_ROOT, ProjectRegistry, load_toml
 
 SYMLINKED_ROOT_PATHS = [
     "prek.toml",
@@ -20,18 +20,22 @@ SYMLINKED_ROOT_PATHS = [
 
 SHARED_REPO_URL = "https://github.com/copier-templates/shared-dev-tooling.git"
 SHARED_PREK_REPO = "https://github.com/copier-templates/shared-dev-tooling"
-SHARED_INCLUDES = [f"git::{SHARED_REPO_URL}//tasks/{category}?ref={SHARED_REF}" for category in SHARED_CATEGORIES]
+SHARED_INCLUDES = [f"git::{SHARED_REPO_URL}//tasks/{category}?ref={ref}" for category, ref in SHARED_REFS.items()]
 MIN_MISE_VERSION = (2026, 11, 10)
 
 
 @pytest.mark.parametrize("source", ["root", "rendered"])
 def test_mise_imports_shared_task_categories(source: str, projects: ProjectRegistry):
-    """Root and rendered mise.toml import the shared core/toml/py/cicd tasks under experimental includes."""
+    """Root and rendered mise.toml import the shared core/toml/py/cicd tasks, each at its own ref."""
     data = load_toml(TEMPLATE_ROOT / "mise.toml") if source == "root" else projects.render("basic").mise()
     includes = data.get("task_config", {}).get("includes", [])
     assert set(SHARED_INCLUDES) <= set(includes)
-    shared_refs = {include.split("?ref=", 1)[1] for include in includes if SHARED_REPO_URL in include}
-    assert shared_refs == {SHARED_REF}, f"shared includes must pin one ref: {shared_refs}"
+    refs = {
+        include.split("//tasks/", 1)[1].split("?ref=", 1)[0]: include.split("?ref=", 1)[1]
+        for include in includes
+        if SHARED_REPO_URL in include
+    }
+    assert refs == SHARED_REFS, f"shared includes drifted from their per-category refs: {refs}"
     assert data.get("settings", {}).get("experimental") is True
     min_version = data.get("min_version", "0.0.0")
     assert tuple(int(part) for part in min_version.split(".")) >= MIN_MISE_VERSION
@@ -39,7 +43,7 @@ def test_mise_imports_shared_task_categories(source: str, projects: ProjectRegis
 
 @pytest.mark.parametrize("source", ["root", "rendered"])
 def test_shared_include_refs_match_prek_rev(source: str, projects: ProjectRegistry):
-    """Every shared task-include ref equals the shared prek repo rev, so tasks and hooks pin one release."""
+    """Prek pins the newest shared include ref and blocks updates outside the managed ref set."""
     data = load_toml(TEMPLATE_ROOT / "mise.toml") if source == "root" else projects.render("basic").mise()
     includes = data.get("task_config", {}).get("includes", [])
     shared_includes = [include for include in includes if SHARED_PREK_REPO in include]
@@ -48,10 +52,12 @@ def test_shared_include_refs_match_prek_rev(source: str, projects: ProjectRegist
         f"every shared task include must pin a ref: {shared_includes}"
     )
     refs = {include.split("?ref=", 1)[1] for include in shared_includes}
+    assert refs == set(SHARED_REFS.values())
     prek = load_toml(TEMPLATE_ROOT / "templates" / "prek.toml")
     shared_repos = [repo for repo in prek["repos"] if repo["repo"] == SHARED_PREK_REPO]
     assert shared_repos, "prek.toml must pin the shared hooks repo"
-    assert refs == {shared_repos[0]["rev"]}
+    assert shared_repos[0]["rev"] == SHARED_REF
+    assert set(prek["update"]["repos"][SHARED_PREK_REPO]["include_tags"]) == set(SHARED_REFS.values())
 
 
 def test_rendered_readme_documents_the_mise_floor(projects: ProjectRegistry):

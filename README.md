@@ -97,7 +97,7 @@ All `*.toml` files are formatted with [taplo](https://taplo.tamasfe.com/); the `
 
 The [`prek.yml`](.github/workflows/prek.yml) workflow runs monthly (`0 6 1 * *`) and on manual `workflow_dispatch`, running `prek update` on `prek.toml` with `contents: write` and a `~/.cache/prek` cache step.
 It commits `chore(deps): auto-update prek hooks` via `github-actions[bot]` only when `prek.toml` changed (`git diff --quiet` gate, `timeout-minutes: 10`, `concurrency: prek-update`).
-The shared `shared-dev-tooling` repo is held at its current tag by `[update.repos]`, so `prek update` never moves it alone: that `rev` must equal the `?ref=` of the shared task includes in both `mise.toml` files. To adopt a new shared release, bump the tag in `prek.toml` and the `?ref=` values in both `mise.toml` files together by hand, then clear the remote-task cache with `mise run mise:cache:clear` (see [docs/development.md](docs/development.md#tools-used)).
+The shared `shared-dev-tooling` repo is held to the refs managed by the task includes: `[update.repos]` lists every distinct `?ref=`, and the hooks `rev` follows the newest one, so `prek update` never moves it alone. Move every pin with `uv run python scripts/sync_shared_refs.py --to X.Y.Z`, or edit the root `mise.toml` to roll categories out separately and run the script without `--to`; then clear the remote-task cache with `mise run mise:cache:clear` (see [docs/development.md](docs/development.md#tools-used)).
 
 ## 📚 Local Documentation
 

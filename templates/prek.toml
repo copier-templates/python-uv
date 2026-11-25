@@ -26,9 +26,10 @@ default_stages = [
 [update]
 cooldown_days = 7
 
-# `prek update` must never move the shared hooks repo: its tag must stay in
-# lockstep with the `?ref=` of the shared task includes in `mise.toml`
-# (`tests/test_sync.py` enforces that pair). Bump both by hand in one change.
+# `prek update` may only choose tags already managed by the shared task includes
+# in `mise.toml` (`tests/test_sync.py` enforces the set). Per-category refs may
+# differ; the hooks repo itself follows the newest one, so bump it with
+# `scripts/sync_shared_refs.py`, never by hand.
 [update.repos."https://github.com/copier-templates/shared-dev-tooling"]
 include_tags = [
   "0.2.1",
@@ -96,9 +97,9 @@ hooks = [
   ] },
 ]
 
-# rev must match the `?ref=` of the shared task includes in `mise.toml`; the
-# `[update.repos]` pin above keeps `prek update` from moving it alone. The
-# explicit `types` keep these hooks TOML-only even if the shared manifest broadens.
+# rev follows the newest `?ref=` among the shared task includes in `mise.toml`;
+# the `[update.repos]` pins above keep `prek update` inside the managed ref set.
+# The explicit `types` keep these hooks TOML-only even if the shared manifest broadens.
 [[repos]]
 repo = "https://github.com/copier-templates/shared-dev-tooling"
 rev = "0.2.1"

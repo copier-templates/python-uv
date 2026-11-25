@@ -51,10 +51,11 @@ _Avoid_: Generated project, consumer project.
 **Task contract**
 : The mise task names that both the template root and rendered projects expose.
 
-**Shared ref**
-: The single pinned release of `shared-dev-tooling` used by the `mise.toml`
-task includes, the `prek.toml` shared hooks `rev` and the `tests/_projects.py`
-constant. Moved with `scripts/sync_shared_refs.py --to`, never by hand-editing
+**Shared refs**
+: The per-category pinned releases of `shared-dev-tooling` used by the
+`mise.toml` task includes and mirrored by `tests/_projects.py`. The newest ref
+supplies the `prek.toml` shared hooks `rev`, while `[update.repos]` lists every
+managed ref. Moved with `scripts/sync_shared_refs.py`, never by hand-editing
 individual pins.
 
 **Gate**

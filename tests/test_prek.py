@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from _projects import SHARED_REF, TEMPLATE_ROOT, load_toml
+from _projects import SHARED_REF, SHARED_REFS, TEMPLATE_ROOT, load_toml
 
 PREK_TOML = TEMPLATE_ROOT / "templates" / "prek.toml"
 PREK = load_toml(PREK_TOML)
@@ -64,9 +64,9 @@ def test_prek_imports_shared_taplo_hooks():
 
 
 def test_prek_update_holds_shared_repo_at_its_rev():
-    """`prek update` must not move the shared hooks repo: its tag is also the mise include ref."""
+    """`prek update` may only pick tags already managed by the mise includes."""
     pin = PREK["update"]["repos"][SHARED_REPO]
-    assert pin["include_tags"] == [SHARED_REF], "shared repo must stay updatable only to its current tag"
+    assert set(pin["include_tags"]) == set(SHARED_REFS.values()), "shared repo must stay inside the managed ref set"
 
 
 def test_sync_shared_refs_guard_runs_on_precommit_as_readonly_check():

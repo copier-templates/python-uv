@@ -67,24 +67,26 @@ The root and every rendered `mise.toml` import task files over the network from
 [`copier-templates/shared-dev-tooling`](https://github.com/copier-templates/shared-dev-tooling):
 
 ```text
-git::https://github.com/copier-templates/shared-dev-tooling.git//tasks/core?ref=0.2.1
+git::https://github.com/copier-templates/shared-dev-tooling.git//tasks/core?ref=0.2.0
 git::https://github.com/copier-templates/shared-dev-tooling.git//tasks/toml?ref=0.2.1
 git::https://github.com/copier-templates/shared-dev-tooling.git//tasks/py?ref=0.2.1
 git::https://github.com/copier-templates/shared-dev-tooling.git//tasks/cicd/github?ref=0.2.1
 ```
 
-All four `?ref=` values must equal the `rev` (and the `[update.repos]`
-`include_tags`) of the shared repo in `prek.toml`: one tag supplies the shared
-hook environments and the shared task definitions, and `tests/test_sync.py`
-fails when the pair drifts. `prek.toml` pins the repo through
-`[update.repos]`, so `prek update` never advances it alone; moving to a new
-shared release is `uv run python scripts/sync_shared_refs.py --to X.Y.Z`,
-which moves the root `mise.toml`, `templates/mise.toml.jinja`,
-`templates/prek.toml` and `tests/_projects.py` together. The
-`sync-shared-refs` pre-commit hook runs the script with `--check` and blocks
-drifted commits. mise caches remote `git::` includes, so after changing a ref
-run `mise run mise:cache:clear`; the next `mise` command re-clones the include,
-while a cold cache (fresh clone or CI) fetches it on first use.
+Each include keeps its own `?ref=`, so categories can adopt a release
+independently. The shared repo in `prek.toml` uses the newest include ref as
+its `rev`; its `[update.repos]` `include_tags` lists every managed ref, and
+`tests/test_sync.py` fails when either side drifts. That keeps `prek update`
+inside the pinned set instead of advancing the hooks repo alone. Moving every
+pin to one release is `uv run python scripts/sync_shared_refs.py --to X.Y.Z`;
+to roll out categories separately, edit the root `mise.toml` refs and run the
+script without `--to`. It updates the root `mise.toml`,
+`templates/mise.toml.jinja`, `templates/prek.toml` and `tests/_projects.py`
+together. The `sync-shared-refs` pre-commit hook runs the script with `--check`
+and blocks drifted commits. mise caches remote `git::` includes, so after
+changing a ref run `mise run mise:cache:clear`; the next `mise` command
+re-clones the include, while a cold cache (fresh clone or CI) fetches it on
+first use.
 
 ## Excluded Directories
 

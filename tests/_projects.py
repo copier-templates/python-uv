@@ -18,8 +18,14 @@ from copier import run_copy
 TEMPLATE_ROOT = Path(__file__).resolve().parents[1]
 
 # Single source of truth for the mise/shared-tooling contract (see tests/test_sync.py).
+SHARED_REFS = {
+    "core": "0.2.1",
+    "toml": "0.2.1",
+    "py": "0.2.1",
+    "cicd/github": "0.2.1",
+}
 SHARED_REF = "0.2.1"
-SHARED_CATEGORIES = ("core", "toml", "py", "cicd/github")
+SHARED_CATEGORIES = tuple(SHARED_REFS)
 LOCAL_TASKS = frozenset({"bootstrap", "release"})
 
 GIT = shutil.which("git") or "git"

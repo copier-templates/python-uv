@@ -1,4 +1,4 @@
-"""`sync_shared_refs.py` CLI: one-command shared-ref bumps with `--check` for the pre-commit guard."""
+"""`sync_shared_refs.py` CLI: per-category shared-ref bumps with `--check` for the pre-commit guard."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ from _projects import SHARED_REF, TEMPLATE_ROOT
 SCRIPT = TEMPLATE_ROOT / "scripts" / "sync_shared_refs.py"
 
 OLD = SHARED_REF
+OLDER = "0.2.0"
 NEW = "0.9.9"
 
 SHARED_REPO = "https://github.com/copier-templates/shared-dev-tooling"
@@ -31,6 +32,8 @@ includes = [
   "{SHARED_INCLUDES[1]}",
 ]
 """
+
+MIXED_MISE_TOML = MISE_TOML.replace(f"?ref={OLD}", f"?ref={OLDER}", 1)
 
 PREK_TOML = f"""\
 [update.repos."{SHARED_REPO}"]
@@ -54,23 +57,34 @@ hooks = [
 """
 
 PROJECTS_PY = f"""\
+SHARED_REFS = {{
+    "core": "{OLD}",
+    "toml": "{OLD}",
+}}
 SHARED_REF = "{OLD}"
 UNRELATED = "{OLD}"
 """
 
 
-def _write_template_tree(root: Path) -> None:
-    (root / "mise.toml").write_text(MISE_TOML)
+def _write_template_tree(
+    root: Path,
+    *,
+    mise: str = MISE_TOML,
+    template_mise: str | None = None,
+    prek: str = PREK_TOML,
+    projects: str = PROJECTS_PY,
+) -> None:
+    (root / "mise.toml").write_text(mise)
     (root / "templates").mkdir()
-    (root / "templates" / "mise.toml.jinja").write_text(MISE_TOML)
-    (root / "templates" / "prek.toml").write_text(PREK_TOML)
+    (root / "templates" / "mise.toml.jinja").write_text(mise if template_mise is None else template_mise)
+    (root / "templates" / "prek.toml").write_text(prek)
     (root / "tests").mkdir()
-    (root / "tests" / "_projects.py").write_text(PROJECTS_PY)
+    (root / "tests" / "_projects.py").write_text(projects)
 
 
-def _write_rendered_tree(root: Path) -> None:
-    (root / "mise.toml").write_text(MISE_TOML)
-    (root / "prek.toml").write_text(PREK_TOML)
+def _write_rendered_tree(root: Path, *, mise: str = MISE_TOML, prek: str = PREK_TOML) -> None:
+    (root / "mise.toml").write_text(mise)
+    (root / "prek.toml").write_text(prek)
 
 
 def _run(tree: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -103,7 +117,7 @@ def test_check_reports_the_drifted_file(tmp_path: Path):
 
 
 def test_to_rewrites_every_pin_and_nothing_else(tmp_path: Path):
-    """`--to` moves all four pins in a template tree without touching unrelated pins."""
+    """`--to` moves every managed pin in a template tree without touching unrelated pins."""
     _write_template_tree(tmp_path)
     proc = _run(tmp_path, "--to", NEW)
     assert proc.returncode == 0, proc.stderr
@@ -116,6 +130,7 @@ def test_to_rewrites_every_pin_and_nothing_else(tmp_path: Path):
     assert f'include_tags = [\n  "{NEW}",\n]' in prek
     assert f'repo = "https://example.com/unrelated-hooks"\nrev = "{OLD}"' in prek
     projects = (tmp_path / "tests" / "_projects.py").read_text()
+    assert 'SHARED_REFS = {\n    "core": "0.9.9",\n    "toml": "0.9.9",\n}' in projects
     assert f'SHARED_REF = "{NEW}"' in projects
     assert f'UNRELATED = "{OLD}"' in projects
     assert _run(tmp_path, "--check").returncode == 0
@@ -133,22 +148,62 @@ def test_to_accepts_any_ref_scheme(tmp_path: Path):
     prek = (tmp_path / "templates" / "prek.toml").read_text()
     assert 'rev = "v9.9.9"' in prek
     assert 'include_tags = [\n  "v9.9.9",\n]' in prek
-    assert 'SHARED_REF = "v9.9.9"' in (tmp_path / "tests" / "_projects.py").read_text()
+    projects = (tmp_path / "tests" / "_projects.py").read_text()
+    assert 'SHARED_REFS = {\n    "core": "v9.9.9",\n    "toml": "v9.9.9",\n}' in projects
+    assert 'SHARED_REF = "v9.9.9"' in projects
     assert _run(tmp_path, "--check").returncode == 0
 
 
-def test_conflicting_mise_refs_are_an_error(tmp_path: Path):
-    """Without `--to`, mixed `?ref=` values fail instead of guessing a winner."""
-    _write_template_tree(tmp_path)
-    mise = tmp_path / "mise.toml"
-    mise.write_text(MISE_TOML.replace(f"?ref={OLD}", f"?ref={NEW}", 1))
+def test_mixed_refs_sync_per_category_without_to(tmp_path: Path):
+    """Each include keeps its own ref: templates and tests mirror the split, hooks use the newest."""
+    _write_template_tree(tmp_path, mise=MIXED_MISE_TOML, template_mise=MISE_TOML)
+    assert _run(tmp_path, "--check").returncode == 1
+    proc = _run(tmp_path)
+    assert proc.returncode == 0, proc.stderr
+    for rel in ("mise.toml", "templates/mise.toml.jinja"):
+        content = (tmp_path / rel).read_text()
+        assert f"//tasks/core?ref={OLDER}" in content, rel
+        assert f"//tasks/toml?ref={OLD}" in content, rel
+    prek = (tmp_path / "templates" / "prek.toml").read_text()
+    assert f'repo = "{SHARED_REPO}"\nrev = "{OLD}"' in prek
+    assert f'include_tags = [\n  "{OLDER}",\n  "{OLD}",\n]' in prek
+    assert f'repo = "https://example.com/unrelated-hooks"\nrev = "{OLD}"' in prek
+    projects = (tmp_path / "tests" / "_projects.py").read_text()
+    assert f'SHARED_REFS = {{\n    "core": "{OLDER}",\n    "toml": "{OLD}",\n}}' in projects
+    assert f'SHARED_REF = "{OLD}"' in projects
+    assert _run(tmp_path, "--check").returncode == 0
+
+
+def test_numeric_ref_order_selects_the_newest_hook_rev(tmp_path: Path):
+    """Numeric rollover is handled: 0.2.10 is newer than 0.2.9 for the shared hooks pin."""
+    mise = MISE_TOML.replace(f"?ref={OLD}", "?ref=0.2.9", 1).replace(f"?ref={OLD}", "?ref=0.2.10", 1)
+    prek = PREK_TOML.replace(f'  "{OLD}",\n', '  "0.2.9",\n  "0.2.10",\n').replace(
+        f'repo = "{SHARED_REPO}"\nrev = "{OLD}"',
+        'repo = "https://github.com/copier-templates/shared-dev-tooling"\nrev = "0.2.10"',
+    )
+    projects = (
+        PROJECTS_PY.replace(f'    "core": "{OLD}",', '    "core": "0.2.9",')
+        .replace(f'    "toml": "{OLD}",', '    "toml": "0.2.10",')
+        .replace(f'SHARED_REF = "{OLD}"', 'SHARED_REF = "0.2.10"')
+    )
+    _write_template_tree(tmp_path, mise=mise, prek=prek, projects=projects)
+    assert _run(tmp_path, "--check").returncode == 0
+    content = (tmp_path / "templates" / "prek.toml").read_text()
+    assert f'repo = "{SHARED_REPO}"\nrev = "0.2.10"' in content
+
+
+def test_conflicting_refs_for_the_same_include_are_an_error(tmp_path: Path):
+    """The same task path may not appear twice with different refs; that source of truth is ambiguous."""
+    duplicate = f'  "git::{SHARED_REPO}.git//tasks/core?ref={OLDER}",\n'
+    mise = MISE_TOML.replace(f'  "{SHARED_INCLUDES[0]}",\n', f'  "{SHARED_INCLUDES[0]}",\n{duplicate}', 1)
+    _write_template_tree(tmp_path, mise=mise)
     proc = _run(tmp_path, "--check")
     assert proc.returncode == 2
-    assert "one ref" in proc.stderr
+    assert "more than one ref" in proc.stderr
 
 
 def test_new_task_category_is_picked_up_automatically(tmp_path: Path):
-    """A category the script never heard of is still managed: drift fails, `--to` moves it."""
+    """A category the script never heard of is still managed and keeps its own ref."""
     _write_template_tree(tmp_path)
     extra = f'  "git::{SHARED_REPO}.git//tasks/security?ref={NEW}",\n'
     for rel in ("mise.toml", "templates/mise.toml.jinja"):
@@ -157,13 +212,13 @@ def test_new_task_category_is_picked_up_automatically(tmp_path: Path):
         index = next(i for i, line in enumerate(lines) if SHARED_INCLUDES[0] in line)
         lines.insert(index + 1, extra)
         path.write_text("".join(lines))
-    proc = _run(tmp_path, "--check")
-    assert proc.returncode == 2
-    assert "one ref" in proc.stderr
-    assert _run(tmp_path, "--to", NEW).returncode == 0
+    assert _run(tmp_path, "--check").returncode == 1
+    assert _run(tmp_path).returncode == 0
     for rel in ("mise.toml", "templates/mise.toml.jinja"):
         content = (tmp_path / rel).read_text()
         assert f"//tasks/security?ref={NEW}" in content, rel
+    projects = (tmp_path / "tests" / "_projects.py").read_text()
+    assert f'    "security": "{NEW}",' in projects
     assert _run(tmp_path, "--check").returncode == 0
 
 
@@ -178,6 +233,17 @@ def test_rendered_mode_syncs_only_the_local_prek_toml(tmp_path: Path):
     assert _run(tmp_path, "--to", NEW).returncode == 0
     assert f'rev = "{NEW}"' in prek.read_text()
     assert not (tmp_path / "templates").exists()
+
+
+def test_rendered_mode_keeps_multiple_refs(tmp_path: Path):
+    """A rendered project with per-category refs lists all of them and pins hooks to the newest."""
+    _write_rendered_tree(tmp_path, mise=MIXED_MISE_TOML)
+    assert _run(tmp_path, "--check").returncode == 1
+    assert _run(tmp_path).returncode == 0
+    prek = (tmp_path / "prek.toml").read_text()
+    assert f'repo = "{SHARED_REPO}"\nrev = "{OLD}"' in prek
+    assert f'include_tags = [\n  "{OLDER}",\n  "{OLD}",\n]' in prek
+    assert _run(tmp_path, "--check").returncode == 0
 
 
 def test_check_passes_on_the_real_template_tree():
@@ -223,12 +289,7 @@ hooks = [
 
 
 def _write_two_source_tree(root: Path) -> None:
-    (root / "mise.toml").write_text(OTHER_MISE_TOML)
-    (root / "templates").mkdir()
-    (root / "templates" / "mise.toml.jinja").write_text(OTHER_MISE_TOML)
-    (root / "templates" / "prek.toml").write_text(OTHER_PREK_TOML)
-    (root / "tests").mkdir()
-    (root / "tests" / "_projects.py").write_text(PROJECTS_PY)
+    _write_template_tree(root, mise=OTHER_MISE_TOML, prek=OTHER_PREK_TOML)
 
 
 def test_second_upstream_groups_independently(tmp_path: Path):
@@ -258,36 +319,38 @@ def test_include_tags_glob_patterns_are_preserved(tmp_path: Path):
     assert _run(tmp_path, "--check").returncode == 0
 
 
-def test_update_table_with_multiple_exact_pins_collapses_to_one(tmp_path: Path):
-    """Multiple exact tags (multiple ref versions) collapse to the mise ref instead of duplicating."""
-    _write_template_tree(tmp_path)
-    prek = tmp_path / "templates" / "prek.toml"
-    prek.write_text(
-        PREK_TOML.replace(f'  "{OLD}",\n', f'  "{NEW}",\n  "{OLD}",\n').replace(
-            f'repo = "{SHARED_REPO}"\nrev = "{OLD}"', f'repo = "{SHARED_REPO}"\nrev = "{NEW}"'
-        )
+def test_update_table_duplicates_collapse_but_distinct_refs_remain(tmp_path: Path):
+    """Duplicate tags collapse, while distinct per-category refs stay in `include_tags`."""
+    _write_template_tree(
+        tmp_path,
+        mise=MIXED_MISE_TOML,
+        template_mise=MIXED_MISE_TOML,
+        projects=PROJECTS_PY.replace(f'    "core": "{OLD}",', f'    "core": "{OLDER}",'),
     )
+    prek = tmp_path / "templates" / "prek.toml"
+    prek.write_text(PREK_TOML.replace(f'  "{OLD}",\n', f'  "{OLD}",\n  "{OLD}",\n'))
     assert _run(tmp_path, "--check").returncode == 1
     assert _run(tmp_path).returncode == 0
     content = prek.read_text()
-    assert f'include_tags = [\n  "{OLD}",\n]' in content
+    assert f'include_tags = [\n  "{OLDER}",\n  "{OLD}",\n]' in content
     assert f'repo = "{SHARED_REPO}"\nrev = "{OLD}"' in content
     assert f'repo = "https://example.com/unrelated-hooks"\nrev = "{OLD}"' in content
     assert _run(tmp_path, "--check").returncode == 0
 
 
-def test_update_table_single_line_multiple_pins_collapses_to_one(tmp_path: Path):
-    """A single-line `include_tags` with several exact pins collapses to one pin."""
-    _write_template_tree(tmp_path)
-    prek = tmp_path / "templates" / "prek.toml"
-    prek.write_text(
-        PREK_TOML.replace(f'include_tags = [\n  "{OLD}",\n]', f'include_tags = ["{NEW}", "{OLD}"]').replace(
-            f'repo = "{SHARED_REPO}"\nrev = "{OLD}"', f'repo = "{SHARED_REPO}"\nrev = "{NEW}"'
-        )
+def test_update_table_single_line_multiple_pins_expand_to_distinct_refs(tmp_path: Path):
+    """A single-line `include_tags` keeps one pin per distinct managed ref."""
+    _write_template_tree(
+        tmp_path,
+        mise=MIXED_MISE_TOML,
+        template_mise=MIXED_MISE_TOML,
+        projects=PROJECTS_PY.replace(f'    "core": "{OLD}",', f'    "core": "{OLDER}",'),
     )
+    prek = tmp_path / "templates" / "prek.toml"
+    prek.write_text(PREK_TOML.replace(f'include_tags = [\n  "{OLD}",\n]', f'include_tags = ["{OLD}", "{OLD}"]'))
     assert _run(tmp_path, "--check").returncode == 1
     assert _run(tmp_path).returncode == 0
     content = prek.read_text()
-    assert f'include_tags = ["{OLD}"]' in content
+    assert f'include_tags = ["{OLDER}", "{OLD}"]' in content
     assert f'repo = "{SHARED_REPO}"\nrev = "{OLD}"' in content
     assert _run(tmp_path, "--check").returncode == 0

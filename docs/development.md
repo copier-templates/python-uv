@@ -100,20 +100,23 @@ git commit -m "WIP: template changes"
 - **shared-dev-tooling**: both `mise.toml` files import `tasks/core`, `tasks/toml`,
   `tasks/py` and (when GitHub integration is enabled) `tasks/cicd/github` over
   the network from
-  [`copier-templates/shared-dev-tooling`](https://github.com/copier-templates/shared-dev-tooling),
-  and `prek.toml` pins the same tag as the shared hooks `rev` (plus a matching
-  `[update.repos]` `include_tags` so `prek update` never moves it alone).
-  Bump with one command — never by hand:
+  [`copier-templates/shared-dev-tooling`](https://github.com/copier-templates/shared-dev-tooling).
+  Each include can pin a different ref; `prek.toml` uses the newest one as the
+  shared hooks `rev` and lists every managed ref in `[update.repos]`
+  `include_tags`, so `prek update` never leaves that set. Bump every pin with
+  one command — never by hand:
   ```bash
   uv run python scripts/sync_shared_refs.py --to 0.2.2
   ```
-  It moves the root `mise.toml` includes, `templates/mise.toml.jinja`,
-  `templates/prek.toml` and `tests/_projects.py` together;
+  To adopt releases per category, edit the root `mise.toml` refs and run the
+  script without `--to`. It moves the root `mise.toml` includes,
+  `templates/mise.toml.jinja`, `templates/prek.toml` and
+  `tests/_projects.py` together;
   `uv run python scripts/sync_shared_refs.py --check` verifies without writing,
   and the `sync-shared-refs` pre-commit hook runs that check on every commit
-  (`tests/test_sync.py` still guards the lockstep in CI). After a bump run
-  `mise run mise:cache:clear` so the next `mise` command refetches the
-  cached remote tasks.
+  (`tests/test_sync.py` still guards the contract in CI). After a bump run
+  `mise run mise:cache:clear` so the next `mise` command refetches the cached
+  remote tasks.
 
 ## Troubleshooting
 
