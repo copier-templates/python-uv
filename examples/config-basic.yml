@@ -1,0 +1,15 @@
+# Example data file for non-interactive Copier usage
+# Provide to Copier with --data-file to pre-answer questions (do NOT use -a here)
+# Usage:
+#   copier copy --data-file examples/config-basic.yml /path/to/template /dest/path
+# Only include question keys (no leading underscore settings). You can override
+# any value inline with -d key=value flags if needed.
+
+project_name: sample_project
+project_description: "Sample project generated via Copier non-interactively"
+user_name: Test User
+user_email: test@test.com
+python_version: "3.12"
+production_deps: ["httpx[http2]"]
+# pytest, pytest-cov, ruff and ty are always installed; list extras here
+extra_dev_deps: []
