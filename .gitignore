@@ -167,8 +167,6 @@ cython_debug/
 !.gitattributes
 !.gitignore
 !.prekignore
-!.agents/
-!.agents/*.md
 !prek.toml
 !.github/
 !.github/workflows/
@@ -181,18 +179,18 @@ cython_debug/
 !templates/.gitignore.jinja
 !templates/.github/
 !templates/.github/workflows/
+!templates/.github/workflows/**
+!templates/prek.toml
 # Re-exclude bytecode under the payload: running payload scripts from the
 # template source writes templates/scripts/__pycache__/, which must never
 # enter the template snapshot (`tests/_projects.py` copies via `git ls-files`).
 templates/**/__pycache__/
 templates/**/*.py[cod]
-!templates/.github/workflows/**
-!templates/prek.toml
 # But exclude everything else in .github
 .github/**
-!.github/jactionlint.yaml
 !.github/workflows/
 !.github/workflows/**
+!.github/jactionlint.yaml
 *.txt
 *.xlsx
 *.log

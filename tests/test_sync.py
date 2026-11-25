@@ -54,6 +54,14 @@ def test_shared_include_refs_match_prek_rev(source: str, projects: ProjectRegist
     assert refs == {shared_repos[0]["rev"]}
 
 
+def test_rendered_readme_documents_the_mise_floor(projects: ProjectRegistry):
+    """Generated README prerequisites state the mise floor and why experimental mode is required."""
+    readme = projects.render("basic").read("README.md")
+    prerequisites = readme.split("## Installation", 1)[0]
+    assert "2026.11.10" in prerequisites
+    assert "experimental" in prerequisites
+
+
 @pytest.mark.parametrize("rel_path", SYMLINKED_ROOT_PATHS)
 def test_root_file_is_symlink_into_templates(rel_path: str):
     root = TEMPLATE_ROOT / rel_path
